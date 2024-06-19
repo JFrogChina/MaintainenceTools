@@ -14,7 +14,10 @@
 
 ## Artifactory Repo Index
 该项目是一个Python脚本，用于对JFrog Xray的 Indexed Resources 的数据进行解释；
-支持并发API调用，结果可以保存为CSV、JSON或表格格式。
+主要针对这种场景：点击indexall后，进度一直无法达到100%，似乎某（几）个包index失败，但是由于index数据可能很多，不方便进行日志排查，如何快速找出这个'异常的'问题；（脚本并不提供具体的失败原因，只定位包的位置）
+<div style="text-align: center;">
+![图一](https://github.com/JFrogChina/MaintainenceTools/tree/main/artifactory-repo-index/resource/images/indexresource01.jpg)
+</div>
 
 [详情点击 Artifactory Repo Index](https://github.com/JFrogChina/MaintainenceTools/tree/main/artifactory-repo-index)
 
