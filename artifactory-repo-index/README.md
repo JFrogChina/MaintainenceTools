@@ -60,7 +60,7 @@
 
 ## 项目结构
 
-- `scanner.py`: 主脚本文件
+- `indexer.py`: 主脚本文件
 - `Xray_pkg_support.json`: 文件类型的支持规则
 
 ## 贡献
