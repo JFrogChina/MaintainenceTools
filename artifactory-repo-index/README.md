@@ -1,4 +1,4 @@
-# Artifactory Repository Scanner
+# Artifactory Repository Indexer
 
 ## 概述
 
