@@ -16,9 +16,38 @@
     <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource02.jpg?raw=true" alt="图二" />
 </div>
 
-### 对一些数值的定义和澄清：
-图一中的UI index结果为 64/65：其中65为Xray识别的应扫描的文件数量，64为减去扫描结果状态为 not scanned | scan failed |not supported 之后的制品数量
-图二中
+### 相关数值对应的定义和澄清：
+#### 扫描状态
+[官方说明](https://jfrog.com/help/r/xray-rest-apis/scan-status)中，有以下几种状态：
+```json
+{
+"status": "failed"/"not supported"/"in progress"/"not scanned"/"scanned"
+}
+```
+
+- 注：在Xray一些版本中可能存在其他的状态，如scan failed、或者接口返回500报错等情况；
+- 对几种状态的通俗解释:
+```json
+"not supported": 此仓库不支持此制品，比如在nuget仓库中上传的dll文件;
+"not scanned": 未扫描，通常出现在制品刚上传的阶段或扫描结果已经过期的阶段（默认保留90天）;
+"in progress": 扫描过程中，一般不会长时间处于此状态，如果一直保持这个状态，需要具体排查原因;
+"scanned": 扫描成功;
+"failed/scan failed": 扫描失败，需要具体分析其原因;
+```
+
+#### 图一 
+- UI index 结果为 64/65;
+- 65为Xray识别的应扫描的文件数量;
+- 64为减去扫描结果状态为 not scanned | scan failed |not supported 之后的制品数量
+
+#### 图二
+```shell
+[Repo ] - [xx-local] - Potential files: 65, Scan Status Counts: Counter({'scanned': 64, 'scan failed': 1})
+```
+- xx-local为仓库名;
+- Potential files: 65 表示共计有65个文件应该被扫描;
+- scanned': 64 表示有64个制品的扫描结果为此状态；
+- scan failed': 1 表示有1个制品的扫描结果为此状态；
 
 ## 安装
 
