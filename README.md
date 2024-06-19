@@ -21,7 +21,7 @@
 
 [详情点击 Artifactory Repo Index](https://github.com/JFrogChina/MaintainenceTools/tree/main/artifactory-repo-index)
 <div style="text-align: center;">
-![图一](https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true)
+    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
 </div>
 ## 贡献
 

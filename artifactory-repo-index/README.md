@@ -4,6 +4,15 @@
 
 该项目是一个Python脚本，用于对JFrog Xray的 Indexed Resources 的数据进行解释；
 支持并发API调用，结果可以保存为CSV、JSON或表格格式。
+- 对 index 数据的进度进行展开，问题：
+<div style="text-align: center;">
+    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
+</div>
+- 扫描结果解答：
+<div style="text-align: center;">
+    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource02.jpg?raw=true" alt="图二" />
+</div>
+
 
 ## 安装
 
