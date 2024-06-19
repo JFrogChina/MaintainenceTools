@@ -5,14 +5,20 @@
 该项目是一个Python脚本，用于对JFrog Xray的 Indexed Resources 的数据进行解释；
 支持并发API调用，结果可以保存为CSV、JSON或表格格式。
 - 对 index 数据的进度进行展开，问题：
+
 <div style="text-align: center;">
     <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
 </div>
+
 - 扫描结果解答：
+
 <div style="text-align: center;">
     <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource02.jpg?raw=true" alt="图二" />
 </div>
 
+### 对一些数值的定义和澄清：
+图一中的UI index结果为 64/65：其中65为Xray识别的应扫描的文件数量，64为减去扫描结果状态为 not scanned | scan failed |not supported 之后的制品数量
+图二中
 
 ## 安装
 
