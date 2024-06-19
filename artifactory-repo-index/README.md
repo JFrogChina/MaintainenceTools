@@ -43,7 +43,7 @@
 
 1. 运行脚本：
     ```python
-    python3 indexer.py my-repo --base_url=https://demo.jfrogchina.com --username myuser --password mypass --scan_result_save results.csv --format csv
+    python3 indexer.py my-repo --base_url=https://myjfrogurl.com --username myuser --password mypass --scan_result_save results.csv --format csv
     ```
 
 2. 参数说明：
