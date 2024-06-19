@@ -19,7 +19,7 @@
 ### 相关数值对应的定义和澄清：
 #### 扫描状态
 [官方说明](https://jfrog.com/help/r/xray-rest-apis/scan-status)中,有以下几种状态：
-```json
+```shell
 {
 "status": "failed"/"not supported"/"in progress"/"not scanned"/"scanned"
 }
