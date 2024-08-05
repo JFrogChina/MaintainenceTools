@@ -140,7 +140,7 @@ def get_result_gui(base_url, auth, repositorypath, cve, aim, max_attempts):
 # Function to configure JFrog CLI
 def configure_jfrog_cli(server_id, url, user, password):
     try:
-        config_cmd = f"jf c add {server_id} --url={url} --user={user} --password={password} --interactive=false --overwrite=true"
+        config_cmd = f"JFROG_CLI_AVOID_NEW_VERSION_WARNING=true jf c add {server_id} --url={url} --user={user} --password={password} --interactive=false --overwrite=true"
         subprocess.run(config_cmd, shell=True, check=True)
         print("JFrog CLI configured successfully.")
     except subprocess.CalledProcessError as e:
