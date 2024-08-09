@@ -232,7 +232,7 @@ def main():
     default_username = "sunjian"
     default_password = "Jfr0gchina!"
     default_log_file = "scan_result.log"
-    default_retry = 1
+    default_retry = 2
     default_save_artifacts_folder = "artifacts/"
 
     parser = argparse.ArgumentParser(description="Artifact scan")
