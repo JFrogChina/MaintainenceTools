@@ -61,6 +61,8 @@ def force_reindex(base_url, auth, repo, path, repo_info):
     return True, None
 
 # Function to get artifact scan status
+    # https://jfrog.com/help/r/xray-rest-apis/artifact-scan-status
+    # Xray Since: 3.80.9
 def get_scan_status(base_url, auth, repo, path, max_attempts, interval=5):
     status_payload = {
         "repo": repo,
@@ -71,7 +73,9 @@ def get_scan_status(base_url, auth, repo, path, max_attempts, interval=5):
             time.sleep(interval)
 
         status_response = requests.post(f"{base_url}/xray/api/v1/artifact/status", headers={"Content-Type": "application/json"}, data=json.dumps(status_payload), auth=auth)
-        if not status_response.ok:
+        if status_response.status_code == 404:
+            return None, handle_http_error(status_response, "Required Xray > 3.80.9")
+        if status_response.status_code != 404 and not status_response.ok:
             return None, handle_http_error(status_response, "Failed to get scan status")
 
         status_data = status_response.json()
@@ -83,6 +87,7 @@ def get_scan_status(base_url, auth, repo, path, max_attempts, interval=5):
     return None, f"Scan status not done: {sca_status}"
 
 # Function to get artifact summary
+    # https://jfrog.com/help/r/xray-rest-apis/artifact-summary
 def get_summary(base_url, auth, repo, path):
     summary_payload = {
         "paths": [
@@ -146,15 +151,21 @@ def configure_jfrog_cli(server_id, url, user, password):
     except subprocess.CalledProcessError as e:
         print(f"Failed to configure JFrog CLI: {str(e)}")
         exit(1)
-    subprocess.run(f"jf c use {server_id}", shell=True, check=True)
-    subprocess.run("jf rt ping", shell=True, check=True)
+    subprocess.run(f"JFROG_CLI_AVOID_NEW_VERSION_WARNING=true jf c use {server_id}", shell=True, check=True)
+    subprocess.run(f"JFROG_CLI_AVOID_NEW_VERSION_WARNING=true jf rt ping", shell=True, check=True)
 
 # Function to download files using JFrog CLI
-def download_files_jf(repositorypath, artifacts_dir):
+def download_files_jf(repositorypath, artifacts_dir, base_url, auth):
     repo, path = repositorypath.split('/', 1)
     try:
         os.makedirs(artifacts_dir, exist_ok=True)
-        download_cmd = f"JFROG_CLI_TRANSITIVE_DOWNLOAD_EXPERIMENTAL=true jf rt download {repo}/{path} {artifacts_dir} --flat=true --threads=1"
+        # if file not exist
+        repo_info, error = get_repository_info(base_url, repo, auth)
+        if error:
+            return [repositorypath, cve, aim, "error", error]
+        if repo_info['rclass'] == 'remote':
+            repo = repo.replace('-cache', '')
+        download_cmd = f"jf rt curl -XGET {repo}/{path} -O --output-dir {artifacts_dir}"
         with open(os.devnull, 'wb') as devnull:
             subprocess.run(download_cmd, shell=True, check=True, stdout=devnull, stderr=devnull)
         return os.path.join(artifacts_dir, os.path.basename(path))
@@ -212,7 +223,7 @@ def get_result_cli(repositorypath, artifacts_dir, cve):
 def process_line(line, base_url, auth, artifacts_dir, max_attempts):
     repositorypath, cve, aim = line.strip().split()
     
-    download_result = download_files_jf(repositorypath, artifacts_dir)
+    download_result = download_files_jf(repositorypath, artifacts_dir, base_url, auth)
     log_entry = get_result_gui(base_url, auth, repositorypath, cve, aim, max_attempts)
     
     if download_result:
