@@ -6,6 +6,7 @@ import argparse
 import pandas as pd
 from datetime import datetime, timedelta
 import getpass
+import sys
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -29,11 +30,11 @@ REPO = args.repo
 # Validate Artifactory URL format
 if not ARTIFACTORY_URL.startswith(('http://', 'https://')):
     print("❌ Error: Artifactory URL must start with http:// or https://")
-    exit(1)
+    sys.exit(1)
 
 if not ARTIFACTORY_URL.endswith('/artifactory'):
     print("❌ Error: Artifactory URL must end with /artifactory")
-    exit(1)
+    sys.exit(1)
 
 # Print configuration info
 print("\nArtifactory Configuration:")
@@ -79,16 +80,28 @@ url = f"{ARTIFACTORY_URL}/api/search/aql"
 print(f"\nDEBUG: Sending AQL query: {query}")
 try:
     response = requests.post(url, auth=(USERNAME, PASSWORD), data=query, verify=False)
-    response.raise_for_status()  # Raise an exception for bad status codes
+    
+    # Check for authentication errors
+    if response.status_code == 401:
+        print("❌ Error: Authentication failed")
+        print("Please check your username and password.")
+        sys.exit(1)
+    elif response.status_code == 403:
+        print("❌ Error: Access forbidden")
+        print("Please check your permissions in Artifactory.")
+        sys.exit(1)
+    
+    # Check for other HTTP errors
+    response.raise_for_status()
+    
+except requests.exceptions.ConnectionError:
+    print("❌ Error: Could not connect to Artifactory")
+    print("Please check your Artifactory URL and network connection.")
+    sys.exit(1)
 except requests.exceptions.RequestException as e:
     print(f"❌ Error connecting to Artifactory: {str(e)}")
     print("Please check your Artifactory URL, username, and password.")
-    exit(1)
-
-if response.status_code != 200:
-    print(f"❌ Failed to get image information: {response.text}")
-    print("Please check your Artifactory URL, username, and password.")
-    exit(1)
+    sys.exit(1)
 
 # Parse results
 try:
@@ -96,14 +109,25 @@ try:
 except json.JSONDecodeError:
     print("❌ Error: Invalid JSON response from Artifactory")
     print("Response content:", response.text)
-    exit(1)
+    sys.exit(1)
+
+# Validate response structure
+if not isinstance(results, dict):
+    print("❌ Error: Unexpected response format from Artifactory")
+    print("Response content:", results)
+    sys.exit(1)
 
 images = results.get("results", [])
+if not isinstance(images, list):
+    print("❌ Error: Invalid results format from Artifactory")
+    print("Response content:", results)
+    sys.exit(1)
+
 print(f"DEBUG: Query response: {json.dumps(results, indent=2)}")
 
 if not images:
     print("✅ No images found")
-    exit(0)
+    sys.exit(0)
 
 print(f"\nFound {len(images)} images:")
 total_size_bytes = 0
@@ -111,6 +135,10 @@ excel_data = []
 
 # Process each image
 for image in images:
+    if not isinstance(image, dict):
+        print(f"⚠️ Warning: Skipping invalid image data: {image}")
+        continue
+        
     path = image.get("path", "")
     name = image.get("name", "")
     size = image.get("size", 0)
@@ -194,23 +222,27 @@ print(f"Total size: {total_size_mb} MB ({total_size_gb} GB)")
 
 # Export to Excel
 if excel_data:
-    df = pd.DataFrame(excel_data)
-    
-    # Sort by size in descending order
-    df = df.sort_values(by='Size (MB)', ascending=False)
-    
-    # Generate filename with timestamp if not specified
-    if not args.output:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        excel_filename = f"docker_images_report_{timestamp}.xlsx"
-    else:
-        excel_filename = args.output if args.output.endswith('.xlsx') else f"{args.output}.xlsx"
-    
-    # Export to Excel
-    df.to_excel(excel_filename, index=False, engine='openpyxl')
-    print(f"\n✅ Report exported to: {excel_filename}")
-    
-    # Print top 10 largest images
-    print("\nTop 10 largest images:")
-    for _, row in df.head(10).iterrows():
-        print(f"{row['Path']}/{row['Name']}: {row['Size (MB)']} MB") 
+    try:
+        df = pd.DataFrame(excel_data)
+        
+        # Sort by size in descending order
+        df = df.sort_values(by='Size (MB)', ascending=False)
+        
+        # Generate filename with timestamp if not specified
+        if not args.output:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            excel_filename = f"docker_images_report_{timestamp}.xlsx"
+        else:
+            excel_filename = args.output if args.output.endswith('.xlsx') else f"{args.output}.xlsx"
+        
+        # Export to Excel
+        df.to_excel(excel_filename, index=False, engine='openpyxl')
+        print(f"\n✅ Report exported to: {excel_filename}")
+        
+        # Print top 10 largest images
+        print("\nTop 10 largest images:")
+        for _, row in df.head(10).iterrows():
+            print(f"{row['Path']}/{row['Name']}: {row['Size (MB)']} MB")
+    except Exception as e:
+        print(f"❌ Error exporting to Excel: {str(e)}")
+        sys.exit(1) 
