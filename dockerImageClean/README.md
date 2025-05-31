@@ -1,42 +1,21 @@
 # Docker Image Cleanup Tool
 
-A Python script to help identify and manage unused Docker images in Artifactory. This tool generates detailed reports of Docker images that haven't been downloaded within a specified time period.
-
-## 🚀 Features
-
-- Query Docker images from Artifactory repository
-- Filter images based on last download date
-- Generate detailed Excel reports with image information
-- Sort images by size to identify largest unused images
-- Secure password handling
-- Support for custom repository names
-- Detailed console output with image statistics
+A Python script to help identify and manage unused Docker images in Artifactory.
 
 ## 📋 Prerequisites
 
 - Python 3.6 or higher
-- Required Python packages:
-  - requests
-  - pandas
-  - openpyxl
-  - urllib3
+- Required packages: requests, pandas, openpyxl, urllib3
 
 ## 🔧 Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd dockerImageClean
-```
-
-2. Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## 🛠️ Usage
 
-### Basic Usage
+### 1. List Unused Images
 
 ```bash
 python dockerImageClean.py \
@@ -46,126 +25,210 @@ python dockerImageClean.py \
   --days 30
 ```
 
-### Command Line Arguments
+#### Arguments
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--artifactory-url` | Yes | - | Artifactory server URL (must end with /artifactory) |
+| `--artifactory-url` | Yes | - | Artifactory URL (must end with /artifactory) |
 | `--username` | Yes | - | Artifactory username |
-| `--repo` | No | docker-local | Repository name to search in |
-| `--days` | No | 30 | Number of days to look back for downloads. Images that have not been downloaded in the last N days will be included in the report. If not specified, all images will be shown (limited to 500). |
+| `--repo` | No | docker-local | Repository name |
+| `--days` | No | 30 | Days to look back for downloads |
 | `--output` | No | auto-generated | Output Excel file name |
 
-### Examples
+### 2. Delete Images by Keyword
 
-1. Query images not downloaded in the last 30 days:
 ```bash
-python dockerImageClean.py \
+# Preview what would be deleted (dry run mode)
+python dockerImageDelete.py \
   --artifactory-url "https://abc.jfrog.io/artifactory" \
-  --username "admin" \
+  --username "your-username" \
   --repo "docker-local" \
-  --days 30
-```
+  --keyword "test" \
+  --dry-run
 
-2. Query images with custom output file:
-```bash
-python dockerImageClean.py \
+# Preview with detailed information
+python dockerImageDelete.py \
   --artifactory-url "https://abc.jfrog.io/artifactory" \
-  --username "admin" \
+  --username "your-username" \
   --repo "docker-local" \
-  --output "my_report.xlsx"
+  --keyword "test" \
+  --dry-run \
+  --verbose
+
+# Actually delete images
+python dockerImageDelete.py \
+  --artifactory-url "https://abc.jfrog.io/artifactory" \
+  --username "your-username" \
+  --repo "docker-local" \
+  --keyword "test"
 ```
 
-3. Query all images (limited to 500):
-```bash
-python dockerImageClean.py \
-  --artifactory-url "https://abc.jfrog.io/artifactory" \
-  --username "admin" \
-  --repo "docker-local"
-```
+#### Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--artifactory-url` | Yes | - | Artifactory URL (must end with /artifactory) |
+| `--username` | Yes | - | Artifactory username |
+| `--repo` | No | docker-local | Repository name |
+| `--keyword` | Yes | - | Keyword to match in image path or name |
+| `--dry-run` | No | False | Enable dry run mode (no actual deletion) |
+| `--verbose` | No | False | Show detailed information in dry run mode |
 
 ## 📊 Output
 
-### Console Output
-- Configuration information
-- List of found images with details
-- Summary statistics
-- Top 10 largest images
+### List Images Output
 
-### Excel Report
-The generated Excel report includes the following information for each image:
-- Repository
-- Path
-- Tag
-- Name
-- Size (MB)
-- Created date
-- Modified date
-- Updated date
-- Created by
-- Modified by
-- Download count
-- Last downloaded date
-- SHA1
-- Original SHA1
-- MD5
-- Original MD5
-- SHA256
+The script generates:
+1. Console output with image details and summary
+2. Excel report with:
+   - Image metadata (size, dates, creators)
+   - Download statistics
+   - Checksums (SHA1, MD5, SHA256)
 
-## 🔒 Security
+#### Example Output
 
-- Password is securely handled using Python's `getpass` module
-- SSL verification warnings are disabled for development environments
-- No credentials are stored or logged
+```
+Artifactory Configuration:
+URL: https://abc.jfrog.io/artifactory
+Username: admin
+Password: ********
+
+Found 3 images:
+
+Image: docker-local/app1/v1.0.0/image.tar
+  Tag: v1.0.0
+  Size: 256.5 MB
+  Created: 2024-01-01T10:00:00.000Z
+  Downloads: 0
+  Last Downloaded: Never
+  SHA256: abc123...
+
+Image: docker-local/app2/v2.0.0/image.tar
+  Tag: v2.0.0
+  Size: 512.8 MB
+  Created: 2024-01-15T15:30:00.000Z
+  Downloads: 0
+  Last Downloaded: Never
+  SHA256: def456...
+
+Summary:
+Total images found: 3
+Total size: 769.3 MB (0.75 GB)
+
+✅ Report exported to: docker_images_report_20240315_123456.xlsx
+
+Top 10 largest images:
+app2/v2.0.0/image.tar: 512.8 MB
+app1/v1.0.0/image.tar: 256.5 MB
+```
+
+### Delete Images Output
+
+The script shows:
+1. Configuration information
+2. List of images matching the keyword
+3. Total size of matching images
+4. Confirmation prompt (unless in dry-run mode)
+5. Deletion progress and results
+
+#### Example Output (Normal Mode)
+
+```
+Artifactory Configuration:
+URL: https://abc.jfrog.io/artifactory
+Username: admin
+Password: ********
+Repository: docker-local
+Keyword: test
+Mode: Delete
+
+Searching for images matching keyword 'test'...
+
+Found 2 images matching keyword 'test':
+
+Image: docker-local/test-app/v1.0.0/image.tar
+  Size: 256.5 MB
+
+Image: docker-local/test-app/v2.0.0/image.tar
+  Size: 512.8 MB
+
+Total size: 769.3 MB (0.75 GB)
+
+⚠️  Are you sure you want to delete these 2 images? (yes/no): yes
+
+Deleting images...
+✅ Deleted: docker-local/test-app/v1.0.0/image.tar
+✅ Deleted: docker-local/test-app/v2.0.0/image.tar
+
+Summary:
+Total images found: 2
+Successfully deleted: 2
+Failed to delete: 0
+Total size: 769.3 MB (0.75 GB)
+```
+
+#### Example Output (Dry Run with Verbose Mode)
+
+```
+Artifactory Configuration:
+URL: https://abc.jfrog.io/artifactory
+Username: admin
+Password: ********
+Repository: docker-local
+Keyword: test
+Mode: Dry Run
+Verbose mode: Enabled
+
+Searching for images matching keyword 'test'...
+
+Found 2 images matching keyword 'test':
+
+Image: docker-local/test-app/v1.0.0/image.tar
+  Size: 256.5 MB
+  Created: 2024-01-01T10:00:00.000Z
+  Modified: 2024-01-15T15:30:00.000Z
+  Created by: admin
+  Modified by: admin
+  Delete URL: https://abc.jfrog.io/artifactory/docker-local/test-app/v1.0.0/image.tar
+
+Image: docker-local/test-app/v2.0.0/image.tar
+  Size: 512.8 MB
+  Created: 2024-01-15T15:30:00.000Z
+  Modified: 2024-01-15T15:30:00.000Z
+  Created by: admin
+  Modified by: admin
+  Delete URL: https://abc.jfrog.io/artifactory/docker-local/test-app/v2.0.0/image.tar
+
+Total size: 769.3 MB (0.75 GB)
+
+Would delete: docker-local/test-app/v1.0.0/image.tar
+  URL: https://abc.jfrog.io/artifactory/docker-local/test-app/v1.0.0/image.tar
+  Size: 256.5 MB
+
+Would delete: docker-local/test-app/v2.0.0/image.tar
+  URL: https://abc.jfrog.io/artifactory/docker-local/test-app/v2.0.0/image.tar
+  Size: 512.8 MB
+
+Summary:
+Total images found: 2
+Successfully deleted: 2
+Failed to delete: 0
+Total size: 769.3 MB (0.75 GB)
+
+⚠️  This was a dry run. No images were actually deleted.
+
+Detailed information:
+Repository: docker-local
+Keyword: test
+Total images: 2
+Total size: 769.3 MB (0.75 GB)
+Average size: 384.65 MB per image
+```
 
 ## ⚠️ Error Handling
 
-The script includes error handling for:
-- Invalid Artifactory URL format
-- Authentication failures
-- Connection issues
-- Invalid JSON responses
-- Missing required parameters
-
-### Common Error Messages
-
-1. Authentication Failure:
-```
-❌ Error connecting to Artifactory: 401 Unauthorized
-Please check your Artifactory URL, username, and password.
-```
-
-2. Invalid URL Format:
-```
-❌ Error: Artifactory URL must start with http:// or https://
-❌ Error: Artifactory URL must end with /artifactory
-```
-
-3. Connection Issues:
-```
-❌ Error connecting to Artifactory: Connection refused
-Please check your Artifactory URL, username, and password.
-```
-
-4. Invalid Response:
-```
-❌ Error: Invalid JSON response from Artifactory
-Response content: [error details]
-```
-
-## 📝 Notes
-
-- The script uses AQL (Artifactory Query Language) to search for images
-- Results are limited to 500 images per query
-- Excel reports are sorted by image size in descending order
-- Default repository name is 'docker-local'
-- If authentication fails, the script will exit with status code 1
-- Invalid responses from Artifactory will be displayed in the error message
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+Common errors and solutions:
+- Authentication failed: Check username and password
+- Invalid URL: URL must start with http(s):// and end with /artifactory
+- Connection error: Check network and Artifactory URL
+- Invalid response: Check Artifactory server status 
