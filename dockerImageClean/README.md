@@ -231,4 +231,60 @@ Common errors and solutions:
 - Authentication failed: Check username and password
 - Invalid URL: URL must start with http(s):// and end with /artifactory
 - Connection error: Check network and Artifactory URL
-- Invalid response: Check Artifactory server status 
+- Invalid response: Check Artifactory server status
+
+## 🔍 Delete Images Documentation
+
+### Overview
+
+The `dockerImageDelete.py` script helps you safely delete Docker images from Artifactory based on keywords. It includes a dry run mode to preview changes before actual deletion.
+
+### Usage
+
+1. **Preview Changes (Dry Run)**
+   ```bash
+   python dockerImageDelete.py \
+     --artifactory-url "https://abc.jfrog.io/artifactory" \
+     --username "your-username" \
+     --repo "docker-local" \
+     --keyword "test" \
+     --dry-run
+   ```
+
+2. **Preview with Details**
+   ```bash
+   python dockerImageDelete.py \
+     --artifactory-url "https://abc.jfrog.io/artifactory" \
+     --username "your-username" \
+     --repo "docker-local" \
+     --keyword "test" \
+     --dry-run \
+     --verbose
+   ```
+
+3. **Delete Images**
+   ```bash
+   python dockerImageDelete.py \
+     --artifactory-url "https://abc.jfrog.io/artifactory" \
+     --username "your-username" \
+     --repo "docker-local" \
+     --keyword "test"
+   ```
+
+### Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--artifactory-url` | Yes | - | Artifactory URL (must end with /artifactory) |
+| `--username` | Yes | - | Artifactory username |
+| `--repo` | No | docker-local | Repository name |
+| `--keyword` | Yes | - | Keyword to match in image path or name |
+| `--dry-run` | No | False | Preview changes without deleting |
+| `--verbose` | No | False | Show detailed image information |
+
+### Best Practices
+
+1. Always use `--dry-run` first to verify what will be deleted
+2. Use `--verbose` to see detailed information about each image
+3. Double-check the repository name and keyword
+4. Back up important images before deletion 
