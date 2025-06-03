@@ -1,4 +1,4 @@
-# Docker Image Cleanup Tool
+# Docker Image List Tool
 
 A Python script to help identify and manage unused Docker images in Artifactory.
 
@@ -18,7 +18,7 @@ pip install -r requirements.txt
 ### 1. List Unused Images
 
 ```bash
-python dockerImageClean.py \
+python dockerImageList.py \
   --artifactory-url "https://abc.jfrog.io/artifactory" \
   --username "your-username" \
   --repo "docker-local" \

@@ -4,3 +4,29 @@ scan-results-report/logs/
 scan-results-report/scanreport/
 scan-results-report/artifacts/
 scan-results-report/scan_result.log
+# Python virtual environment
+venv/
+env/
+.env
+
+# Excel files
+*.xlsx
+*.xls
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS generated files
+**/.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
