@@ -10,6 +10,12 @@ A Python script to help identify and manage unused Docker images in Artifactory.
 ## 🔧 Installation
 
 ```bash
+# Create a virtual environment
+python3 -m venv ~/my-venv
+
+# Activate it
+source ~/my-venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
