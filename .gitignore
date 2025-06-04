@@ -4,3 +4,5 @@ scan-results-report/logs/
 scan-results-report/scanreport/
 scan-results-report/artifacts/
 scan-results-report/scan_result.log
+**/.vscode/
+**/.DS_Store
