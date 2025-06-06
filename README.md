@@ -23,6 +23,9 @@
 <div style="text-align: center;">
     <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
 </div>
+
+## scan result report
+该项目用于对比同一个制品的CVE漏洞 在 JFrog CLI 和 UI 中是否同时存在；
 ## 贡献
 
 欢迎贡献！请 fork 本仓库并提交 PR。
