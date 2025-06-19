@@ -28,7 +28,8 @@ python dockerImageList.py \
   --artifactory-url "https://abc.jfrog.io/artifactory" \
   --username "your-username" \
   --repo "docker-local" \
-  --days 30
+  --days 30 \
+  --max-repos 5
 ```
 
 #### Arguments
@@ -40,7 +41,7 @@ python dockerImageList.py \
 | `--repo` | No | docker-local | Repository name |
 | `--days` | No | 30 | Days to look back for downloads |
 | `--output` | No | auto-generated | Output Excel file name |
-
+|--max-repos	| No	|unlimited|	Max number of repositories to scan (only used if --repo is not specified)
 ## 📊 Output
 
 The script generates:
