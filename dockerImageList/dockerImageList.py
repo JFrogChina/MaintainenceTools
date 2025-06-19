@@ -18,6 +18,7 @@ parser.add_argument('--repo', type=str, help='Repository name to search in (defa
 parser.add_argument('--artifactory-url', type=str, required=True, help='Artifactory URL (e.g., https://abc.jfrog.io/artifactory)')
 parser.add_argument('--username', type=str, required=True, help='Artifactory username')
 parser.add_argument('--output', type=str, help='Output Excel file name (default: docker_images_report_YYYYMMDD_HHMMSS.xlsx)')
+parser.add_argument('--max-repos', type=int, default=None, help='Maximum number of repositories to search (default: unlimited)')
 args = parser.parse_args()
 
 # Set Artifactory configuration
@@ -90,13 +91,18 @@ if not repositories:
     print("❌ No Docker repositories found.")
     sys.exit(1)
 
-print(f"\nSearching in repositories: {', '.join(repositories)}")
+# Apply max-repo limit
+if args.max_repos:
+    repositories = repositories[:args.max_repos]
+    print(f"\n🔢 Limiting to first {args.max_repos} repositories.")
+
+print(f"\n🔍 Searching in repositories: {', '.join(repositories)}")
 
 cutoff_time = (datetime.now() - timedelta(days=args.days)).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 all_images = []
 for repo in repositories:
-    print(f"\n🔍 Searching repository: {repo}")
+    print(f"\n📦 Searching repository: {repo}")
     images = search_repository(repo, cutoff_time)
     all_images.extend(images)
 
@@ -104,7 +110,7 @@ if not all_images:
     print("✅ No unused images found.")
     sys.exit(0)
 
-print(f"\n📦 Found {len(all_images)} images.")
+print(f"\n🧊 Found {len(all_images)} unused images.")
 excel_data = []
 total_size_bytes = 0
 
