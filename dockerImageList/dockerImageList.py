@@ -87,7 +87,8 @@ def get_manifest_stats(repo, path):
         count = data.get("downloadCount", 0)
         ts = data.get("lastDownloaded")
         last_downloaded = (
-            datetime.utcfromtimestamp(ts / 1000).strftime("%Y-%m-%dT%H:%M:%SZ")
+            datetime.fromtimestamp(ts / 1000, tz=datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
             if ts else "Never"
         )
         return count, last_downloaded
@@ -107,7 +108,9 @@ cutoff = datetime.utcnow() - timedelta(days=args.days) if args.days else None
 for repo in repos:
     print(f"📦 Scanning {repo}")
     manifests = find_manifest_paths(repo)
-    for m in manifests:
+    total = len(manifests)
+    for idx, m in enumerate(manifests, start=1):
+        print(f"  🔄 Processing {idx}/{total}: {repo}/{m.get('path')}")
         path = m.get("path", "")
         downloads, last_downloaded = get_manifest_stats(repo, path)
 
