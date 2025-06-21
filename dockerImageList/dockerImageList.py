@@ -1,4 +1,3 @@
-
 import requests
 import json
 import urllib3
@@ -31,11 +30,15 @@ if not ARTIFACTORY_URL.endswith('/artifactory'):
     sys.exit(1)
 
 def get_docker_repos():
-    url = f"{ARTIFACTORY_URL}/api/repositories"
+    url = f"{ARTIFACTORY_URL}/api/repositories?type=local"
     try:
         r = requests.get(url, auth=(USERNAME, PASSWORD), verify=False)
         r.raise_for_status()
         data = r.json()
+        print("📋 All local Docker repositories:")
+        for repo in data:
+            if repo.get("packageType") == "Docker":
+                print(f"  - {repo.get('key')}")
         return [repo["key"] for repo in data if repo.get("packageType") == "Docker"]
     except Exception as e:
         print(f"❌ Failed to get repositories: {e}")
@@ -82,13 +85,15 @@ def get_manifest_stats(repo, path):
     url = f"{ARTIFACTORY_URL}/api/storage/{repo}/{path}/manifest.json?stats"
     try:
         r = requests.get(url, auth=(USERNAME, PASSWORD), verify=False)
+        if r.status_code == 404:
+            print(f"⚠️ Manifest not found for {repo}/{path}, skipping.")
+            return 0, "Never"
         r.raise_for_status()
         data = r.json()
         count = data.get("downloadCount", 0)
         ts = data.get("lastDownloaded")
         last_downloaded = (
-            datetime.fromtimestamp(ts / 1000, tz=datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
+            datetime.utcfromtimestamp(ts / 1000).strftime("%Y-%m-%dT%H:%M:%SZ")
             if ts else "Never"
         )
         return count, last_downloaded
@@ -101,16 +106,17 @@ repos = [REPO] if REPO else get_docker_repos()
 if args.max_repos:
     repos = repos[:args.max_repos]
 
-print(f"🔍 Repositories to scan: {repos}")
+print(f"\n🔍 Repositories to scan: {repos}\n")
 results = []
 cutoff = datetime.utcnow() - timedelta(days=args.days) if args.days else None
 
-for repo in repos:
-    print(f"📦 Scanning {repo}")
+for repo_idx, repo in enumerate(repos, start=1):
+    print(f"📦 Scanning {repo} ({repo_idx}/{len(repos)})")
     manifests = find_manifest_paths(repo)
     total = len(manifests)
+    print(f"   📄 Found {total} manifest.json files in {repo}")
     for idx, m in enumerate(manifests, start=1):
-        print(f"  🔄 Processing {idx}/{total}: {repo}/{m.get('path')}")
+        print(f"    🔄 Processing {idx}/{total}: {repo}/{m.get('path')}")
         path = m.get("path", "")
         downloads, last_downloaded = get_manifest_stats(repo, path)
 
@@ -139,7 +145,7 @@ for repo in repos:
         })
 
 if not results:
-    print("✅ No images matched the criteria.")
+    print("\n✅ No images matched the criteria.")
     sys.exit(0)
 
 df = pd.DataFrame(results)
@@ -148,4 +154,4 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 output_name = args.output or f"docker_image_report_{timestamp}.xlsx"
 df.to_excel(output_name, index=False, engine="openpyxl")
 
-print(f"✅ Report saved to {output_name}")
+print(f"\n✅ Report saved to {output_name}")
