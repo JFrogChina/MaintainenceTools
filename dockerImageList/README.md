@@ -71,6 +71,10 @@ Scanning alpha-docker-qa-local (10/10)
 
 ```
 
+### Note
+If you don't specify the max-repo parameter, all the repositories will be listed.
+For 4K images it will take 3 hour to finish.
+
 ## ⚠️ Error Handling
 
 Common errors and solutions:
