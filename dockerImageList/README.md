@@ -59,33 +59,16 @@ URL: https://abc.jfrog.io/artifactory
 Username: admin
 Password: ********
 
-Found 3 images:
-
-Image: docker-local/app1/v1.0.0/image.tar
-  Tag: v1.0.0
-  Size: 256.5 MB
-  Created: 2024-01-01T10:00:00.000Z
-  Downloads: 0
-  Last Downloaded: Never
-  SHA256: abc123...
-
-Image: docker-local/app2/v2.0.0/image.tar
-  Tag: v2.0.0
-  Size: 512.8 MB
-  Created: 2024-01-15T15:30:00.000Z
-  Downloads: 0
-  Last Downloaded: Never
-  SHA256: def456...
-
-Summary:
-Total images found: 3
-Total size: 769.3 MB (0.75 GB)
+Scanning alpha-docker-qa-local (10/10)
+   📄 Found 5 manifest.json files in alpha-docker-qa-local
+    🔄 Processing 1/5: alpha-docker-qa-local/docker-app/179
+    🔄 Processing 2/5: alpha-docker-qa-local/example-project-app/sha256:14f9d68673b075c2e58f5f4d8761de9f58558df6d3e63135e08f1d99eff72f5b
+    🔄 Processing 3/5: alpha-docker-qa-local/example-project-app/sha256:c8fba29372664d4eb18d89b0fbd8a8e8b46eca8e904e04e58a7e7ffa2c149ad2
+    🔄 Processing 4/5: alpha-docker-qa-local/reactappimage/89
+    🔄 Processing 5/5: alpha-docker-qa-local/reactappimage/90
 
 ✅ Report exported to: docker_images_report_20240315_123456.xlsx
 
-Top 10 largest images:
-app2/v2.0.0/image.tar: 512.8 MB
-app1/v1.0.0/image.tar: 256.5 MB
 ```
 
 ## ⚠️ Error Handling
