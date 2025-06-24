@@ -7,6 +7,7 @@ from datetime import datetime
 import urllib3
 import os
 import concurrent.futures
+import base64
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -21,7 +22,6 @@ parser.add_argument('--debug', action='store_true', help='Enable debug logs')
 args = parser.parse_args()
 
 package_type = args.type.upper()
-
 if package_type not in ['DOCKER', 'MAVEN', 'NPM', 'PYPI']:
     raise ValueError("Unsupported package type: {}".format(package_type))
 
@@ -36,8 +36,13 @@ def log(msg):
     if args.debug:
         print(msg)
 
-# 获取所有指定类型的包
+def decode_cursor(cursor):
+    try:
+        return base64.b64decode(cursor).decode()
+    except Exception:
+        return cursor
 
+# 获取所有包
 def get_all_packages():
     packages = []
     cursor = None
@@ -74,21 +79,19 @@ def get_all_packages():
                 "type": package_type
             }
         }
-        log(f"📦 Fetching packages after cursor: {cursor}")
+        log(f"📦 Fetching packages after cursor: {decode_cursor(cursor) if cursor else 'None'}")
         resp = requests.post(graphql_url, headers=headers, json=query, verify=False)
         resp.raise_for_status()
         data = resp.json()
         page = data.get("data", {}).get("packages", {})
-        edges = page.get("edges", [])
-        for edge in edges:
+        for edge in page.get("edges", []):
             packages.append(edge["node"])
         if not page.get("pageInfo", {}).get("hasNextPage"):
             break
         cursor = page["pageInfo"]["endCursor"]
     return packages
 
-# 查询指定包的所有版本
-
+# 获取指定包的所有版本
 def get_all_versions(package):
     versions = []
     package_id = package["id"]
@@ -125,20 +128,19 @@ def get_all_versions(package):
                 "after": cursor
             }
         }
-        log(f"🔍 Fetching versions for {package['name']} cursor: {cursor}")
+        log(f"🔍 Fetching versions for {package['name']} cursor: {decode_cursor(cursor) if cursor else 'None'}")
         resp = requests.post(graphql_url, headers=headers, json=query, verify=False)
         resp.raise_for_status()
         data = resp.json()
         page = data.get("data", {}).get("versions", {})
-        edges = page.get("edges", [])
-        for edge in edges:
+        for edge in page.get("edges", []):
             versions.append(edge["node"])
         if not page.get("pageInfo", {}).get("hasNextPage"):
             break
         cursor = page["pageInfo"]["endCursor"]
     return package, versions
 
-# 主逻辑
+# 主流程
 all_packages = get_all_packages()
 log(f"📦 Total {package_type} packages found: {len(all_packages)}")
 
@@ -170,26 +172,26 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             except:
                 base["Version Size (MB)"] = 0
 
-            repos = v.get("repos", [])
-            if repos:
-                for r in repos:
-                    if args.repo and args.repo.lower() not in r.get("name", "").lower():
-                        continue
-                    row = base.copy()
-                    row["Repository Name"] = r.get("name", "")
-                    row["Repo Type"] = r.get("type", "")
-                    row["Lead File Path"] = r.get("leadFilePath", "")
-                    all_rows.append(row)
-            else:
-                if not args.repo:
-                    row = base.copy()
-                    row["Repository Name"] = ""
-                    row["Repo Type"] = ""
-                    row["Lead File Path"] = ""
-                    all_rows.append(row)
+            matched_repo = False
+            for r in v.get("repos", []):
+                repo_name = r.get("name", "")
+                if args.repo and args.repo.lower() not in repo_name.lower():
+                    continue
+                matched_repo = True
+                row = base.copy()
+                row["Repository Name"] = repo_name
+                row["Repo Type"] = r.get("type", "")
+                row["Lead File Path"] = r.get("leadFilePath", "")
+                all_rows.append(row)
+
+            if not matched_repo and not args.repo:
+                row = base.copy()
+                row["Repository Name"] = ""
+                row["Repo Type"] = ""
+                row["Lead File Path"] = ""
+                all_rows.append(row)
 
 # 导出 Excel
-
 df = pd.DataFrame(all_rows)
 df.sort_values(by="Version Size (MB)", ascending=False, inplace=True)
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
