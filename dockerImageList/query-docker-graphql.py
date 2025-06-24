@@ -11,13 +11,19 @@ import concurrent.futures
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 参数解析
-parser = argparse.ArgumentParser(description="Query all Docker packages and their versions from JFrog Metadata API and export to Excel.")
+parser = argparse.ArgumentParser(description="Query all packages and versions from JFrog Metadata API and export to Excel.")
 parser.add_argument('--url', required=True, help='JFrog base URL, e.g., https://abc.jfrog.io')
 parser.add_argument('--token', help='Access token (or input securely)')
 parser.add_argument('--output', default=None, help='Excel output file name')
 parser.add_argument('--repo', help='Filter results to only include repositories containing this substring')
+parser.add_argument('--type', default='DOCKER', help='Package type (e.g., DOCKER, MAVEN, NPM, PYPI)')
 parser.add_argument('--debug', action='store_true', help='Enable debug logs')
 args = parser.parse_args()
+
+package_type = args.type.upper()
+
+if package_type not in ['DOCKER', 'MAVEN', 'NPM', 'PYPI']:
+    raise ValueError("Unsupported package type: {}".format(package_type))
 
 token = args.token or getpass.getpass('Enter JFrog access token: ')
 graphql_url = f"{args.url.rstrip('/')}/metadata/api/v1/query"
@@ -30,16 +36,17 @@ def log(msg):
     if args.debug:
         print(msg)
 
-# 获取所有 Docker 包
+# 获取所有指定类型的包
+
 def get_all_packages():
     packages = []
     cursor = None
     while True:
         query = {
             "query": """
-            query ($first: Int, $after: ID) {
+            query ($first: Int, $after: ID, $type: PackageType!) {
               packages(
-                filter: { name: "*", packageTypeIn: [DOCKER] },
+                filter: { name: "*", packageTypeIn: [$type] },
                 first: $first,
                 after: $after,
                 orderBy: { field: NAME, direction: DESC }
@@ -63,7 +70,8 @@ def get_all_packages():
             """,
             "variables": {
                 "first": 100,
-                "after": cursor
+                "after": cursor,
+                "type": package_type
             }
         }
         log(f"📦 Fetching packages after cursor: {cursor}")
@@ -79,7 +87,8 @@ def get_all_packages():
         cursor = page["pageInfo"]["endCursor"]
     return packages
 
-# 获取某个包的所有版本（分页）
+# 查询指定包的所有版本
+
 def get_all_versions(package):
     versions = []
     package_id = package["id"]
@@ -131,11 +140,11 @@ def get_all_versions(package):
 
 # 主逻辑
 all_packages = get_all_packages()
-log(f"📦 Total Docker packages found: {len(all_packages)}")
+log(f"📦 Total {package_type} packages found: {len(all_packages)}")
 
 all_rows = []
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
     futures = {executor.submit(get_all_versions, pkg): pkg for pkg in all_packages}
     for idx, future in enumerate(concurrent.futures.as_completed(futures), 1):
         pkg, versions = future.result()
@@ -144,6 +153,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
 
         for v in versions:
             base = {
+                "Package Type": package_type,
                 "Package Name": pkg["name"],
                 "Description": pkg.get("description", ""),
                 "Package Created": pkg.get("created", ""),
@@ -178,16 +188,14 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
                     row["Lead File Path"] = ""
                     all_rows.append(row)
 
-# 导出 Excel（主数据 + 仓库汇总）
+# 导出 Excel
+
 df = pd.DataFrame(all_rows)
 df.sort_values(by="Version Size (MB)", ascending=False, inplace=True)
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-filename = f"{os.path.splitext(args.output)[0] if args.output else 'docker_versions'}_{timestamp}.xlsx"
+filename = f"{os.path.splitext(args.output)[0] if args.output else package_type.lower() + '_versions'}_{timestamp}.xlsx"
 
 with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-    df.to_excel(writer, sheet_name="Docker Versions", index=False)
+    df.to_excel(writer, sheet_name="Package Versions", index=False)
 
-    df_dedup = df.drop_duplicates(subset=["Repository Name", "Package Name", "Version"])
-    
-
-print(f"\n✅ Exported {len(df)} version rows from {len(all_packages)} Docker packages to {filename}")
+print(f"\n✅ Exported {len(df)} version rows from {len(all_packages)} {package_type} packages to {filename}")
