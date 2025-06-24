@@ -6,18 +6,21 @@ import pandas as pd
 from datetime import datetime
 import urllib3
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 参数
-parser = argparse.ArgumentParser(description="Query Docker packages from JFrog Metadata API and export to CSV.")
+# 解析参数
+parser = argparse.ArgumentParser(description="Query all Docker packages and versions from JFrog Metadata API and export to CSV.")
 parser.add_argument('--url', required=True, help='JFrog base URL, e.g., https://abc.jfrog.io')
 parser.add_argument('--token', help='Access token (or input securely)')
 parser.add_argument('--output', default=None, help='CSV output file name')
+parser.add_argument('--repo', help='Filter to only include repositories containing this substring')
 parser.add_argument('--debug', action='store_true', help='Enable debug logs')
+parser.add_argument('--threads', type=int, default=20, help='Number of concurrent threads (default: 6)')
 args = parser.parse_args()
 
-# 获取 Token
 token = args.token or getpass.getpass('Enter JFrog access token: ')
 graphql_url = f"{args.url.rstrip('/')}/metadata/api/v1/query"
 headers = {
@@ -25,101 +28,122 @@ headers = {
     "Authorization": f"Bearer {token}"
 }
 
-# 构造分页查询
-def build_query(after_cursor=None):
-    return {
-        "query": """
-        query ($first: Int, $after: ID) {
-          packages(
-            filter: { name: "*", packageTypeIn: [DOCKER] },
-            first: $first,
-            after: $after,
-            orderBy: { field: NAME, direction: DESC }
-          ) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            edges {
-              node {
-                name
-                description
-                created
-                modified
-                versionsCount
-                versions {
-                  name
-                  size
-                  created
-                  modified
-                  stats {
-                    downloadCount
-                  }
-                  repos {
+def log(msg):
+    if args.debug:
+        print(msg)
+
+def get_all_packages():
+    packages = []
+    cursor = None
+    while True:
+        query = {
+            "query": """
+            query ($first: Int, $after: ID) {
+              packages(
+                filter: { name: "*", packageTypeIn: [DOCKER] },
+                first: $first,
+                after: $after,
+                orderBy: { field: NAME, direction: DESC }
+              ) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                edges {
+                  node {
+                    id
                     name
-                    type
-                    leadFilePath
+                    description
+                    created
+                    modified
+                    versionsCount
                   }
                 }
               }
             }
-          }
+            """,
+            "variables": {
+                "first": 100,
+                "after": cursor
+            }
         }
-        """,
-        "variables": {
-            "first": 100,
-            "after": after_cursor
+        log(f"📦 Fetching packages after cursor: {cursor}")
+        resp = requests.post(graphql_url, headers=headers, json=query, verify=False)
+        resp.raise_for_status()
+        data = resp.json()
+        page = data.get("data", {}).get("packages", {})
+        edges = page.get("edges", [])
+        for edge in edges:
+            packages.append(edge["node"])
+        if not page.get("pageInfo", {}).get("hasNextPage"):
+            break
+        cursor = page["pageInfo"]["endCursor"]
+    return packages
+
+def get_all_versions(package):
+    versions = []
+    cursor = None
+    while True:
+        query = {
+            "query": """
+            query ($filter: VersionFilter!, $first: Int, $after: ID) {
+              versions(filter: $filter, first: $first, after: $after, orderBy: { field: NAME_SEMVER, direction: DESC }) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                edges {
+                  node {
+                    name
+                    created
+                    modified
+                    size
+                    stats { downloadCount }
+                    repos { name type leadFilePath }
+                  }
+                }
+              }
+            }
+            """,
+            "variables": {
+                "filter": {
+                    "packageId": package['id'],
+                    "ignorePreRelease": False,
+                    "ignoreNonLeadFiles": True
+                },
+                "first": 100,
+                "after": cursor
+            }
         }
-    }
+        log(f"🔍 Fetching versions for {package['name']} cursor: {cursor}")
+        resp = requests.post(graphql_url, headers=headers, json=query, verify=False)
+        resp.raise_for_status()
+        data = resp.json()
+        page = data.get("data", {}).get("versions", {})
+        edges = page.get("edges", [])
+        for edge in edges:
+            versions.append(edge["node"])
+        if not page.get("pageInfo", {}).get("hasNextPage"):
+            break
+        cursor = page["pageInfo"]["endCursor"]
+    return package, versions
 
-# 查询循环
-results = []
-cursor = None
-total_packages = 0
-
-while True:
-    query = build_query(after_cursor=cursor)
-    if args.debug:
-        print(f"📡 Querying after cursor: {cursor}")
-        print(json.dumps(query, indent=2))
-
+def process_package(package):
     try:
-        response = requests.post(graphql_url, headers=headers, json=query, verify=False)
-        response.raise_for_status()
-        data = response.json()
-    except Exception as e:
-        print(f"❌ Request failed: {e}")
-        try:
-            print(f"📄 Raw response:\n{response.text}")
-        except:
-            pass
-        break
-
-    page = data.get("data", {}).get("packages", {})
-    edges = page.get("edges", [])
-    page_info = page.get("pageInfo", {})
-    has_next = page_info.get("hasNextPage", False)
-    cursor = page_info.get("endCursor")
-
-    if args.debug:
-        print(f"📦 Page fetched: {len(edges)} packages")
-
-    for edge in edges:
-        node = edge["node"]
-        versions = node.get("versions", [])
+        pkg, versions = get_all_versions(package)
+        rows = []
         for v in versions:
             base = {
-                "Package Name": node["name"],
-                "Description": node.get("description", ""),
-                "Package Created": node.get("created", ""),
-                "Package Modified": node.get("modified", ""),
-                "Versions Count": node.get("versionsCount", 0),
+                "Package Name": pkg["name"],
+                "Description": pkg.get("description", ""),
+                "Package Created": pkg.get("created", ""),
+                "Package Modified": pkg.get("modified", ""),
+                "Versions Count": pkg.get("versionsCount", 0),
                 "Version": v.get("name", ""),
                 "Version Created": v.get("created", ""),
                 "Version Modified": v.get("modified", ""),
                 "Download Count": v.get("stats", {}).get("downloadCount", 0),
             }
-
             try:
                 size_bytes = int(v.get("size", 0))
                 base["Version Size (MB)"] = round(size_bytes / 1024 / 1024, 2)
@@ -129,28 +153,46 @@ while True:
             repos = v.get("repos", [])
             if repos:
                 for r in repos:
+                    if args.repo and args.repo.lower() not in r.get("name", "").lower():
+                        continue
                     row = base.copy()
                     row["Repository Name"] = r.get("name", "")
                     row["Repo Type"] = r.get("type", "")
                     row["Lead File Path"] = r.get("leadFilePath", "")
-                    results.append(row)
-            else:
+                    rows.append(row)
+            elif not args.repo:
                 row = base.copy()
                 row["Repository Name"] = ""
                 row["Repo Type"] = ""
                 row["Lead File Path"] = ""
-                results.append(row)
+                rows.append(row)
+        return rows
+    except Exception as e:
+        print(f"❌ Failed to process package {package['name']}: {e}")
+        return []
 
-        total_packages += 1
+# Main logic
+all_packages = get_all_packages()
+total = len(all_packages)
+print(f"📦 Total Docker packages found: {total}")
 
-    if not has_next:
-        break
+all_rows = []
+with ThreadPoolExecutor(max_workers=args.threads) as executor:
+    future_to_package = {executor.submit(process_package, pkg): idx for idx, pkg in enumerate(all_packages)}
+    for i, future in enumerate(as_completed(future_to_package), 1):
+        percent = round((i / total) * 100, 1)
+        print(f"➡️ Progress: {i}/{total} ({percent}%)")
+        all_rows.extend(future.result())
 
-# 写入 CSV，按 Version Size (MB) 倒序
-df = pd.DataFrame(results)
+# Output to CSV
+if not all_rows:
+    print("⚠️ No data to export.")
+    exit(0)
+
+df = pd.DataFrame(all_rows)
 df.sort_values(by="Version Size (MB)", ascending=False, inplace=True)
-
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-filename = f"{os.path.splitext(args.output)[0] if args.output else 'docker_packages'}_{timestamp}.csv"
+filename = f"{os.path.splitext(args.output)[0] if args.output else 'docker_versions'}_{timestamp}.csv"
 df.to_csv(filename, index=False)
-print(f"\n✅ Exported {len(df)} rows from {total_packages} Docker packages to {filename}")
+
+print(f"\n✅ Exported {len(df)} version rows to {filename}")
