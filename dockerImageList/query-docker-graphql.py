@@ -11,7 +11,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 参数
 parser = argparse.ArgumentParser(description="Query Docker packages from JFrog Metadata API and export to CSV.")
-parser.add_argument('--url', required=True, help='JFrog base URL, e.g., https://soleng.jfrog.io')
+parser.add_argument('--url', required=True, help='JFrog base URL, e.g., https://abc.jfrog.io')
 parser.add_argument('--token', help='Access token (or input securely)')
 parser.add_argument('--output', default=None, help='CSV output file name')
 parser.add_argument('--debug', action='store_true', help='Enable debug logs')
