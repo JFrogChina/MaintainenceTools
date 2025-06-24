@@ -106,52 +106,50 @@ while True:
 
     for edge in edges:
         node = edge["node"]
-        base = {
-            "Package Name": node["name"],
-            "Description": node.get("description", ""),
-            "Created": node["created"],
-            "Modified": node["modified"],
-            "Versions Count": node["versionsCount"]
-        }
-
         versions = node.get("versions", [])
-        if versions:
-            for v in versions:
+        for v in versions:
+            base = {
+                "Package Name": node["name"],
+                "Description": node.get("description", ""),
+                "Package Created": node.get("created", ""),
+                "Package Modified": node.get("modified", ""),
+                "Versions Count": node.get("versionsCount", 0),
+                "Version": v.get("name", ""),
+                "Version Created": v.get("created", ""),
+                "Version Modified": v.get("modified", ""),
+                "Download Count": v.get("stats", {}).get("downloadCount", 0),
+            }
+
+            try:
+                size_bytes = int(v.get("size", 0))
+                base["Version Size (MB)"] = round(size_bytes / 1024 / 1024, 2)
+            except:
+                base["Version Size (MB)"] = 0
+
+            repos = v.get("repos", [])
+            if repos:
+                for r in repos:
+                    row = base.copy()
+                    row["Repository Name"] = r.get("name", "")
+                    row["Repo Type"] = r.get("type", "")
+                    row["Lead File Path"] = r.get("leadFilePath", "")
+                    results.append(row)
+            else:
                 row = base.copy()
-                row["Version"] = v.get("name", "")
-                try:
-                    size_bytes = int(v["size"])
-                    row["Version Size (MB)"] = round(size_bytes / 1024 / 1024, 2)
-                except:
-                    row["Version Size (MB)"] = 0
-                row["Version Created"] = v.get("created", "")
-                row["Version Modified"] = v.get("modified", "")
-                row["Download Count"] = v.get("stats", {}).get("downloadCount", 0)
-
-                # 提取 repo name（可能有多个）
-                repos = v.get("repos", [])
-                row["Repository Name"] = ", ".join([r.get("name", "") for r in repos])
-
+                row["Repository Name"] = ""
+                row["Repo Type"] = ""
+                row["Lead File Path"] = ""
                 results.append(row)
-        else:
-            row = base.copy()
-            row.update({
-                "Version": "",
-                "Version Size (MB)": 0,
-                "Version Created": "",
-                "Version Modified": "",
-                "Download Count": 0,
-                "Repository Name": ""
-            })
-            results.append(row)
 
         total_packages += 1
 
     if not has_next:
         break
 
-# 写入 CSV
+# 写入 CSV，按 Version Size (MB) 倒序
 df = pd.DataFrame(results)
+df.sort_values(by="Version Size (MB)", ascending=False, inplace=True)
+
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 filename = f"{os.path.splitext(args.output)[0] if args.output else 'docker_packages'}_{timestamp}.csv"
 df.to_csv(filename, index=False)
