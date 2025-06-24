@@ -25,7 +25,7 @@ headers = {
     "Authorization": f"Bearer {token}"
 }
 
-# 构造分页查询（注意变量类型 ID）
+# 构造分页查询
 def build_query(after_cursor=None):
     return {
         "query": """
@@ -54,6 +54,11 @@ def build_query(after_cursor=None):
                   modified
                   stats {
                     downloadCount
+                  }
+                  repos {
+                    name
+                    type
+                    leadFilePath
                   }
                 }
               }
@@ -108,6 +113,7 @@ while True:
             "Modified": node["modified"],
             "Versions Count": node["versionsCount"]
         }
+
         versions = node.get("versions", [])
         if versions:
             for v in versions:
@@ -121,6 +127,11 @@ while True:
                 row["Version Created"] = v.get("created", "")
                 row["Version Modified"] = v.get("modified", "")
                 row["Download Count"] = v.get("stats", {}).get("downloadCount", 0)
+
+                # 提取 repo name（可能有多个）
+                repos = v.get("repos", [])
+                row["Repository Name"] = ", ".join([r.get("name", "") for r in repos])
+
                 results.append(row)
         else:
             row = base.copy()
@@ -129,7 +140,8 @@ while True:
                 "Version Size (MB)": 0,
                 "Version Created": "",
                 "Version Modified": "",
-                "Download Count": 0
+                "Download Count": 0,
+                "Repository Name": ""
             })
             results.append(row)
 
