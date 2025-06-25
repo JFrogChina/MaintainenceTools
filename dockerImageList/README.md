@@ -8,14 +8,6 @@ This Python script queries **all packages and their versions** of a specified ty
 ## 🔧 Installation
 
 
-Create a `requirements.txt` file with:
-
-```txt
-requests
-pandas
-openpyxl
-```
-
 ```bash
 
 # Create a virtual environment
