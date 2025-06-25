@@ -7,7 +7,17 @@ This Python script queries **all packages and their versions** of a specified ty
 
 ## 🔧 Installation
 
+
+Create a `requirements.txt` file with:
+
+```txt
+requests
+pandas
+openpyxl
+```
+
 ```bash
+
 # Create a virtual environment
 python3 -m venv ~/my-venv
 
@@ -18,13 +28,7 @@ source ~/my-venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create a `requirements.txt` file with:
 
-```txt
-requests
-pandas
-openpyxl
-```
 
 ---
 
