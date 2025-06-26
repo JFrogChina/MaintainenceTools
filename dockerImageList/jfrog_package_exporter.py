@@ -213,7 +213,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 # 查询 lastDownloaded
                 row["Last Downloaded"] = get_last_downloaded(args.url, repo_name, lead_file_path, token)
                 all_rows.append(row)
-                time.sleep(0.05)  # 防止请求过快被限流
+                # time.sleep(0.05)  # 防止请求过快被限流
 
             if not matched_repo and not args.repo:
                 row = base.copy()
