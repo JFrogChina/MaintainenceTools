@@ -1,4 +1,3 @@
-
 # 📦 JFrog Package Version Export Tool
 
 This Python script queries **all packages and their versions** of a specified type (e.g., DOCKER, MAVEN, NPM, PYPI) from the JFrog Metadata GraphQL API and exports them into an Excel file.
@@ -80,3 +79,15 @@ Use a [JFrog Access Token](https://jfrog.com/help/r/jfrog-platform-administratio
 
 - Developed by: JFrog China Solution Engineering Team
 - License: MIT
+
+## ⚠️ Notes on Rate Limiting and Server Load
+
+When querying the 'Last Downloaded' field for each version via the Artifactory REST API, you may encounter rate limiting or server rejections if too many requests are made in a short period.
+
+- **To avoid rate limiting**, you can uncomment the line `time.sleep(0.05)` in the script to add a short delay between requests:
+  ```python
+  # time.sleep(0.05)  # Prevent sending requests too quickly and being rate-limited by the server
+  ```
+- **Reduce the number of workers**: Lower the value of `max_workers` in the ThreadPoolExecutor (e.g., from 4 to 2) to decrease concurrent requests and reduce the chance of server-side rejections.
+
+Adjust these parameters according to your Artifactory server's capacity and your organization's API usage policy.
