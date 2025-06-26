@@ -8,6 +8,7 @@ import urllib3
 import os
 import concurrent.futures
 import base64
+import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -140,6 +141,31 @@ def get_all_versions(package):
         cursor = page["pageInfo"]["endCursor"]
     return package, versions
 
+def get_last_downloaded(base_url, repo, lead_file_path, token):
+    if not repo or not lead_file_path:
+        return ""
+    url = f"{base_url.rstrip('/')}/artifactory/api/storage/{repo}/{lead_file_path}?stats"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    try:
+        resp = requests.get(url, headers=headers, verify=False, timeout=10)
+        if resp.status_code == 404:
+            return "Never"
+        resp.raise_for_status()
+        data = resp.json()
+        ts = data.get("lastDownloaded")
+        if ts:
+            try:
+                dt = datetime.fromtimestamp(int(ts) / 1000).strftime('%Y-%m-%d %H:%M:%S')
+                return dt
+            except Exception:
+                return str(ts)
+        return "Never"
+    except Exception:
+        return ""
+
+
 # 主流程
 all_packages = get_all_packages()
 log(f"📦 Total {package_type} packages found: {len(all_packages)}")
@@ -165,6 +191,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 "Version Created": v.get("created", ""),
                 "Version Modified": v.get("modified", ""),
                 "Download Count": v.get("stats", {}).get("downloadCount", 0),
+                "Last Downloaded": ""
             }
             try:
                 size_bytes = int(v.get("size", 0))
@@ -175,20 +202,25 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             matched_repo = False
             for r in v.get("repos", []):
                 repo_name = r.get("name", "")
+                lead_file_path = r.get("leadFilePath", "")
                 if args.repo and args.repo.lower() not in repo_name.lower():
                     continue
                 matched_repo = True
                 row = base.copy()
                 row["Repository Name"] = repo_name
                 row["Repo Type"] = r.get("type", "")
-                row["Lead File Path"] = r.get("leadFilePath", "")
+                row["Lead File Path"] = lead_file_path
+                # 查询 lastDownloaded
+                row["Last Downloaded"] = get_last_downloaded(args.url, repo_name, lead_file_path, token)
                 all_rows.append(row)
+                time.sleep(0.05)  # 防止请求过快被限流
 
             if not matched_repo and not args.repo:
                 row = base.copy()
                 row["Repository Name"] = ""
                 row["Repo Type"] = ""
                 row["Lead File Path"] = ""
+                row["Last Downloaded"] = ""
                 all_rows.append(row)
 
 # 导出 Excel
