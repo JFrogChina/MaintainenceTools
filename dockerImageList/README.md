@@ -4,6 +4,74 @@ This Python script queries **all packages and their versions** of a specified ty
 
 ---
 
+## 🗂️ Script Workflow (ASCII Flow Diagram)
+
+```
++-------------------------+
+|  Start: Parse Arguments |
++-----------+-------------+
+            |
+            v
++-------------------------------+
+| Authenticate with JFrog Token |
++-----------+-------------------+
+            |
+            v
++-----------------------------+
+| Fetch All Packages (GraphQL) |
++-----------+-----------------+
+            |
+            v
++------------------------------------------+
+| For Each Package: Fetch All Versions      |
+|                (GraphQL)                 |
++-----------+------------------------------+
+            |
+            v
++------------------------------------------+
+| For Each Version: For Each Repo           |
++-----------+------------------------------+
+            |
+            v
++--------------------------+
+| Get Lead File Path       |
++-----------+--------------+
+            |
+            v
++---------------------------------------------+
+| Query Artifactory REST API for lastDownloaded|
++-----------+---------------------------------+
+            |
+            v
++--------------------------+
+| Collect Version Info     |
++-----------+--------------+
+            |
+            v
++--------------------------+
+| More Versions?           |
++-----+--------------------+
+      |Yes                     No
+      v                        |
+  (loop back)                  v
++--------------------------+
+| More Packages?           |
++-----+--------------------+
+      |Yes                     No
+      v                        |
+  (loop back)                  v
++--------------------------+
+| Export All Data to Excel |
++-----------+--------------+
+            |
+            v
++--------------------------+
+|           End            |
++--------------------------+
+```
+
+---
+
 ## 🔧 Installation
 
 
@@ -18,8 +86,6 @@ source ~/my-venv/bin/activate
 # Install required dependencies
 pip install -r requirements.txt
 ```
-
-
 
 ---
 
