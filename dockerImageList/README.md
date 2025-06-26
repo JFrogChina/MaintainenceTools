@@ -94,7 +94,7 @@ pip install -r requirements.txt
 ```bash
 python3 jfrog_package_exporter.py \
   --url https://abc.jfrog.io --token access_token \
-  --output docker_repos.csv --debug --type docker
+   --debug --type docker
 ```
 
 ### Optional arguments:
