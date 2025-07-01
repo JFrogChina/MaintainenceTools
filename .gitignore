@@ -3,13 +3,15 @@ artifactory-repo-index/scan_details.file
 scan-results-report/logs/
 scan-results-report/scanreport/
 scan-results-report/artifacts/
+scan-results-report/file.list
 scan-results-report/scan_result.log
+
+# 
 **/.vscode/
+# Mac
 **/.DS_Store
 # Python virtual environment
-venv/
-env/
-.env
+**/.env
 
 # Excel files
 *.xlsx
