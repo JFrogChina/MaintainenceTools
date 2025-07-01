@@ -155,7 +155,7 @@ def configure_jfrog_cli(server_id, url, user, password):
     subprocess.run(f"JFROG_CLI_AVOID_NEW_VERSION_WARNING=true jf rt ping", shell=True, check=True)
 
 # Function to download files using JFrog CLI
-def download_files_jf(repositorypath, artifacts_dir, base_url, auth):
+def download_files_jf(repositorypath, artifacts_dir, base_url, auth, cve, aim):
     repo, path = repositorypath.split('/', 1)
     try:
         os.makedirs(artifacts_dir, exist_ok=True)
@@ -223,7 +223,7 @@ def get_result_cli(repositorypath, artifacts_dir, cve):
 def process_line(line, base_url, auth, artifacts_dir, max_attempts):
     repositorypath, cve, aim = line.strip().split()
     
-    download_result = download_files_jf(repositorypath, artifacts_dir, base_url, auth)
+    download_result = download_files_jf(repositorypath, artifacts_dir, base_url, auth, cve, aim)
     log_entry = get_result_gui(base_url, auth, repositorypath, cve, aim, max_attempts)
     
     if download_result:
@@ -285,7 +285,7 @@ def main():
         args.aim = 'true'
         lines = [f"{args.repositorypath} {args.cve} {args.aim}"]
     else:
-        print("Usage: python report.py <repository_path> <CVE> <intention> or provide a file with -f <file>")
+        print("Usage: python report.py <repository_path>/<artifact_path> <CVE> <intention> or provide a file with -f <file>")
         sys.exit(1)
 
     # Process lines in parallel
