@@ -1,31 +1,52 @@
-# 项目名称
+# MaintainenceTools 项目说明
 
-关于 JFrog 产品的一些工具
+## 项目简介
 
-## 目录
+MaintainenceTools 是一套面向 JFrog Artifactory/Xray 日常运维、日志分析、批量处理等场景的实用工具集合。涵盖索引追踪、日志提取、镜像列表、校验和比对、sha1前缀生成等多种常用功能，助力一线运维、支持和开发团队高效定位和解决问题。
 
-- [简介](#简介)
-- [Artifactory Repo Index](#artifactory-repo-index)
+---
 
-## 简介
+## 目录结构与工具功能（及检索关键字）
 
-关于 JFrog 产品，如 Artifactoroy 、 Xray 的一些小工具，帮助用户更好的使用、维护 JFrog 平台。
+- **artifactory-repo-index/**
+  - `indexer.py`：Artifactory 仓库索引日志分析与可视化工具。
+    - 关键字：index all、indexed resources、索引进度、未100%、Force Reindex 整个仓库
+- **bundle2logs/**
+  - `bundle2logs.py`：提取和处理 Artifactory/Xray 支持包中的日志。
+    - 关键字：support bundle、日志提取
+- **diffSha1andNameInFilestore/**
+  - `checksum.sh`：对 filestore 目录下的文件名与 sha1 校验和进行批量比对。
+    - 关键字：binarystore、filestore、sha1、校验和、checksum
+- **dockerImageList/**
+  - `dockerImageList.py`：批量获取 Artifactory 仓库中的 Docker 镜像列表。
+    - 关键字：docker、镜像列表、仓库
+- **repo-jas-configuration/**
+  - `repo-jas-configuration-check.py`：JAS（JFrog Advanced Security）相关仓库配置检查脚本。
+    - 关键字：JAS、仓库配置、设置高级索引
+- **scan-results-report/**
+  - `report.py`：单独制品的 GUI、RestAPI 扫描结果批量汇总及对比
+    - 关键字：xray、scan result、扫描结果不同、CVE、JFrog CLI、Force Reindex status、单个制品
+- **scan-status-timeline/**
+  - `xray_scan_timeline_traceid.py`：根据 trace id/artifact，分析 Xray 扫描全流程各阶段耗时与状态，支持 debug 日志输出。
+    - 关键字：trace id、timeline、scan status、阶段耗时
+- **sha1-prefix-generator/**
+  - `generate_file.py`：生成特定 checksum 值 的文件；支持两位数的入参
+    - 关键字：sha1、生成特定文件、checksum
+- **xray-indexer-request/**
+  - `xray-indexer-request-trace.py`：批量分析 Xray 索引请求日志，支持多类型事件分类、分组、去重和统计。
+    - 关键字：xray、index request、事件分类、日志去重
 
+---
 
-## Artifactory Repo Index
-该项目是一个Python脚本，用于对JFrog Xray的 Indexed Resources 的数据进行解释；
-主要针对这种场景：
-- 点击index all后，进度一直无法达到100%; 
-- 似乎某（几）个包index失败，但是由于index数据可能很多，不方便进行日志排查;
-- 此脚本可以快速找出这个'异常的'问题；（并不能提供具体的失败原因，只定位包的位置）
+## 适用场景与注意事项
+- 适用于 JFrog Artifactory/Xray 日常巡检、问题定位、批量数据处理、日志分析等场景。
+- 日志分析类工具需指定正确的日志主目录，部分工具需 artifact/trace id 关键词。
+- 建议在 Python 3.6+ 环境下运行，部分脚本依赖第三方库（如 pandas、requests）。
+- 处理大批量日志时，建议先过滤无关日志文件，提升效率。
 
-[详情点击 Artifactory Repo Index](https://github.com/JFrogChina/MaintainenceTools/tree/main/artifactory-repo-index)
-<div style="text-align: center;">
-    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
-</div>
+---
 
-## scan result report
-该项目用于对比同一个制品的CVE漏洞 在 JFrog CLI 和 UI 中是否同时存在；
-## 贡献
-
-欢迎贡献！请 fork 本仓库并提交 PR。
+## 贡献与维护
+- 欢迎团队成员补充新工具、优化现有脚本。
+- 建议每个工具目录下附带 README 或注释说明用法。
+- 如有问题或建议，请联系项目维护者。
