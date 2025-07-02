@@ -31,12 +31,14 @@ dataset,black-forest-labs/kontext-bench,main
 
 #### 单线程检测（默认）
 ```bash
-python check_on_remote_cache.py --models checklist.txt
+export HF_TOKEN=xx
+python3 check_on_remote_cache.py --models checklist.txt
 ```
 
 #### 并发检测（如2进程）
 ```bash
-python check_on_remote_cache.py --models checklist.txt --workers 2
+export HF_TOKEN=xx
+python3 check_on_remote_cache.py --models checklist.txt --workers 2
 ```
 
 #### 主要参数（已更新默认值）
