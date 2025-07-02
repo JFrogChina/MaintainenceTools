@@ -1,0 +1,9 @@
+# 每行格式: model/dataset,repo_id,revision
+agentica-org/DeepScaleR-1.5B-Preview,24a92eff29154a702a928249812162644208ac5b
+BIDEQUITY/autotrain-software_picture_preselection_classifier-2804582686,762711859d542aa9dc9829113e90cfd60b66e1df
+bigscience/bloom-7b1,6232703e399354503377bf59dfbb8397fd569e4a
+model,LiheYoung/depth_anything_vitl14,973948530e4e4f4afd6d1913f670d9f96071dcaa
+model,Qwen/Qwen3-14B-FP8,b1929466a4961baa91177cad8896d3b057dea12b
+model,mistralai/Mistral-Small-24B-Instruct-2501,20b2ed1c4e9af44b9ad125f79f713301e27737e2
+model,HuggingFaceH4/zephyr-7b-beta,892b3d7a7b1cf10c7a701c60881cd93df615734c
+dataset,black-forest-labs/kontext-bench,main
