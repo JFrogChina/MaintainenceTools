@@ -1,3 +1,4 @@
+# Final optimized code: Only fetch lastDownloaded for top N largest versions
 import requests
 import json
 import argparse
@@ -8,17 +9,17 @@ import urllib3
 import os
 import concurrent.futures
 import base64
-import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 参数解析
-parser = argparse.ArgumentParser(description="Query all packages and versions from JFrog Metadata API and export to Excel.")
+# Argument parsing
+parser = argparse.ArgumentParser(description="Query JFrog packages and export to Excel or CSV.")
 parser.add_argument('--url', required=True, help='JFrog base URL, e.g., https://abc.jfrog.io')
 parser.add_argument('--token', help='Access token (or input securely)')
-parser.add_argument('--output', default=None, help='Excel output file name')
+parser.add_argument('--output', default=None, help='Output Excel or CSV file name')
 parser.add_argument('--repo', help='Filter results to only include repositories containing this substring')
 parser.add_argument('--type', default='DOCKER', help='Package type (e.g., DOCKER, MAVEN, NPM, PYPI)')
+parser.add_argument('--last-download-top', type=int, default=0, help='Top N largest versions to fetch lastDownloaded')
 parser.add_argument('--debug', action='store_true', help='Enable debug logs')
 args = parser.parse_args()
 
@@ -43,7 +44,6 @@ def decode_cursor(cursor):
     except Exception:
         return cursor
 
-# 获取所有包
 def get_all_packages():
     packages = []
     cursor = None
@@ -92,7 +92,6 @@ def get_all_packages():
         cursor = page["pageInfo"]["endCursor"]
     return packages
 
-# 获取指定包的所有版本
 def get_all_versions(package):
     versions = []
     package_id = package["id"]
@@ -165,7 +164,6 @@ def get_last_downloaded(base_url, repo, lead_file_path, token):
     except Exception:
         return ""
 
-
 # 主流程
 all_packages = get_all_packages()
 log(f"📦 Total {package_type} packages found: {len(all_packages)}")
@@ -210,10 +208,8 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 row["Repository Name"] = repo_name
                 row["Repo Type"] = r.get("type", "")
                 row["Lead File Path"] = lead_file_path
-                # 查询 lastDownloaded
-                row["Last Downloaded"] = get_last_downloaded(args.url, repo_name, lead_file_path, token)
+                row["Last Downloaded"] = ""  # placeholder only
                 all_rows.append(row)
-                # time.sleep(0.05)  # 防止请求过快被限流
 
             if not matched_repo and not args.repo:
                 row = base.copy()
@@ -223,13 +219,29 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 row["Last Downloaded"] = ""
                 all_rows.append(row)
 
-# 导出 Excel
+# 获取前 N 个最大版本的 lastDownloaded（如果设置了）
+if args.last_download_top > 0:
+    print(f"📊 Fetching lastDownloaded info for top {args.last_download_top} largest versions...")
+    all_rows.sort(key=lambda x: x.get("Version Size (MB)", 0), reverse=True)
+    for row in all_rows[:args.last_download_top]:
+        repo = row.get("Repository Name", "")
+        path = row.get("Lead File Path", "")
+        if repo and path:
+            print(f"🕵️ Fetching lastDownloaded for: {repo}/{path}")
+            row["Last Downloaded"] = get_last_downloaded(args.url, repo, path, token)
+
+# 导出为 Excel 或 CSV
 df = pd.DataFrame(all_rows)
 df.sort_values(by="Version Size (MB)", ascending=False, inplace=True)
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-filename = f"{os.path.splitext(args.output)[0] if args.output else package_type.lower() + '_versions'}_{timestamp}.xlsx"
+filename = f"{os.path.splitext(args.output)[0] if args.output else package_type.lower() + '_versions'}_{timestamp}"
 
-with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-    df.to_excel(writer, sheet_name="Package Versions", index=False)
+if filename.endswith(".csv"):
+    df.to_csv(filename, index=False)
+else:
+    if not filename.endswith(".xlsx"):
+        filename += ".xlsx"
+    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name="Package Versions", index=False)
 
 print(f"\n✅ Exported {len(df)} version rows from {len(all_packages)} {package_type} packages to {filename}")
