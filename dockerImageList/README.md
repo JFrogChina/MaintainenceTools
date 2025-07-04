@@ -121,16 +121,6 @@ python3 jfrog_package_exporter.py \
 
 ---
 
-## 🧪 Example
-
-```bash
-python3 jfrog_package_exporter.py \
-  --url https://abc.jfrog.io --token access_token \
-  --output docker_repos.csv --debug --type maven
-```
-
----
-
 ## 📂 Output
 
 The generated Excel file will contain a sheet named **`Package Versions`**, with the following columns:
