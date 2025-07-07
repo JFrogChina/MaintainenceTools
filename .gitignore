@@ -17,6 +17,9 @@ scan-results-report/file.list
 *.xlsx
 *.xls
 *.csv
+*.sql
+*.bin
+*.zip
 
 # Python cache files
 **/__pycache__/

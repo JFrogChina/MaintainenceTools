@@ -89,13 +89,6 @@ pip install -r requirements.txt
 
 ---
 
-## 🚀 Usage
-
-```bash
-python3 jfrog_package_exporter.py \
-  --url https://abc.jfrog.io --token access_token \
-   --debug --type docker
-```
 
 ### Optional arguments:
 
@@ -108,13 +101,23 @@ python3 jfrog_package_exporter.py \
 
 ---
 
-## 🧪 Example
+## 🚀 Usage Example
 
 ```bash
 python3 jfrog_package_exporter.py \
-  --url https://abc.jfrog.io --token access_token \
-  --output docker_repos.csv --debug --type maven
+  --url https://abc.jfrog.io --token $ACCESS_TOKEN \
+  --output docker_repos.csv --debug --type docker --last-download-top 20
 ```
+
+### Optional arguments:
+
+| Argument             | Description                                                                 |
+|----------------------|-----------------------------------------------------------------------------|
+| `--token`            | Access token (if not provided, you will be prompted to enter it securely)    |
+| `--output`           | Excel or CSV output file name (default: `{type}_versions_TIMESTAMP.xlsx`)    |
+| `--type`             | Package type: `DOCKER`, `MAVEN`, `NPM`, `PYPI` (default: DOCKER)            |
+| `--last-download-top`| Only fetch `lastDownloaded` for the top N largest versions (default: 0 = off)|
+| `--debug`            | Enable debug logs                                                           |
 
 ---
 
