@@ -207,7 +207,7 @@ def batch_from_file(models_file, artifactory_base, timeout=20, debug=False, work
     total_count = len(tasks)
     for idx, (repo_type, repo_id, revision) in enumerate(tasks, 1):
         print(f"\n开始处理{repo_type}: {repo_id}@{revision}")
-        result = cache_from_remote_with_timeout(repo_id, revision, artifactory_base, timeout, debug, file_workers, file_timeout, repo_type=repo_type)
+        result = cache_from_remote_with_timeout(repo_id, revision, artifactory_base, timeout, debug, file_workers, file_timeout, silent=True, repo_type=repo_type)
         model_output_lines = result.splitlines(keepends=True)
         print_model_result(repo_type, repo_id, revision, model_output_lines, idx, total_count)
 
