@@ -1,0 +1,5 @@
+# 扫描结果报告相关
+logs/
+scanreport/
+artifacts/
+file.list 

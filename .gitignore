@@ -1,40 +1,182 @@
-artifactory-repo-index/repoindex/
-artifactory-repo-index/scan_details.file
-scan-results-report/logs/
-scan-results-report/scanreport/
-scan-results-report/artifacts/
-scan-results-report/file.list
-# 
-**/*.log
-# 
-**/.vscode/
-# Mac
-**/.DS_Store
-# Python virtual environment
-**/.env
+# =============================================================================
+# 通用忽略规则 (适用于所有项目)
+# =============================================================================
 
-# Excel files
+# 日志文件
+**/*.log
+
+# =============================================================================
+# 数据文件 (所有项目通用)
+# =============================================================================
+# Excel 和 CSV 文件
 *.xlsx
 *.xls
 *.csv
+
+# 数据库和二进制文件
 *.sql
 *.bin
 *.zip
 
-# Python cache files
+# 项目特定文件
+test.enc
+license_keys.txt
+debug_*.log
+*.enc
+*.dec
+
+# =============================================================================
+# Python 相关
+# =============================================================================
+# Python 缓存文件
 **/__pycache__/
 *.py[cod]
 *$py.class
 
-# IDE settings
+# Python 虚拟环境
+**/.env
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python 扩展
+*.so
+
+# Python 分发和打包
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# pip 日志
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 测试和覆盖率报告
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# 翻译文件
+*.mo
+*.pot
+
+# Django
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Sphinx 文档
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# 类型检查
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# =============================================================================
+# IDE 和编辑器
+# =============================================================================
+# VSCode
+**/.vscode/
 .vscode/
+
+# IntelliJ IDEA
 .idea/
 
-# OS generated files
+# =============================================================================
+# 操作系统生成的文件
+# =============================================================================
+# macOS
 **/.DS_Store
+.DS_Store
+./.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+
+# Windows
 ehthumbs.db
 Thumbs.db 
+
+# exclude other temp project
+other/
+scan-results-report/file.list
+cache-in-jfrog-remote/checklist.txt

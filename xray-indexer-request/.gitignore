@@ -1,0 +1,3 @@
+# Xray索引器请求相关
+request_logs/
+indexer_cache/ 
