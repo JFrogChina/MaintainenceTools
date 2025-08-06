@@ -1,6 +1,7 @@
 import re
 import os
 import sys
+import json
 from datetime import datetime
 
 def extract_time(line):
@@ -51,11 +52,14 @@ def parse_timeline(lines, artifact, debug_mode=False):
 
     # 定义各阶段关键字
     phase_keys = {
-        'indexer_start':   ("index_worker", "Start processing msg"),
+        # Index worker id 4 is processing message from index # 3.90.1
+        #'indexer_start':   ("index_worker", "Start processing msg"),
+        'indexer_start':   ("index_worker", "processing m"),
         'indexer_end':     ("index_worker", "has completed to process message"),
         'persist_start':   ("persist_worker", "is processing message from persist"),
         'persist_end':     ("persist_worker", "has completed to process message"),
-        'analysis_start':  ("analysis_worker", "processing msg for artifact"),
+        #'analysis_start':  ("analysis_worker", "processing msg for artifact"),
+        'analysis_start':  ("analysis_worker", "processing msg"),
         'analysis_end':    ("analysis_worker", "has completed to analyze the component"),
         'ca_start':        ("cve_applicability_service", "Starting CheckApplicability for url"),
         'ca_end':          None,
@@ -165,49 +169,204 @@ def parse_timeline(lines, artifact, debug_mode=False):
 
     return result, debug_status
 
+def format_duration(start_time, end_time):
+    """格式化持续时间"""
+    if not start_time or not end_time:
+        return "0"
+    
+    delta = end_time - start_time
+    total_seconds = delta.total_seconds()
+    h = int(total_seconds // 3600)
+    m = int((total_seconds % 3600) // 60)
+    sec = int(total_seconds % 60)
+    
+    if h > 0:
+        return f"{h:02d}:{m:02d}:{sec:02d}"
+    else:
+        return f"{m:02d}:{sec:02d}"
 
-def show(result, debug_status=None):
-    print(f"| 阶段      | 起始时间                 | 结束时间                 | 耗时/状态     |")
-    print(f"|-----------|--------------------------|--------------------------|--------------|")
-    for phase in ['indexer', 'persist', 'analysis', 'ca', 'exposure']:
-        s = result.get(f"{phase}_start")
-        e = result.get(f"{phase}_end")
-        status_key = f"{phase}_end_status"
-        if s and e:
-            status = result.get(status_key)
-            # 统一处理状态字符串
-            if status == "FAILED":
-                state_str = "FAILED"
-            elif status == "SKIP":
-                state_str = "SKIP"
-            elif status == "ABORTED":
-                state_str = "ABORTED"
-            else:
-                state_str = ""
-            delta = e - s
-            total_seconds = delta.total_seconds()
-            ms = int((total_seconds - int(total_seconds)) * 1000)
-            h = int(total_seconds // 3600)
-            m = int((total_seconds % 3600) // 60)
-            sec = int(total_seconds % 60)
-            if state_str:
-                print(f"| {phase:9} | {s} | {e} | {h}:{m:02d}:{sec:02d}.{ms:03d} {state_str} |")
-            else:
-                print(f"| {phase:9} | {s} | {e} | {h}:{m:02d}:{sec:02d}.{ms:03d} |")
-        elif s and not e:
-            status = (debug_status.get(phase, '') if debug_status else '').lower()
+def determine_status(start_time, end_time, status_key, result, debug_status=None):
+    """确定状态"""
+    if not start_time:
+        return "NOT_STARTED"
+    
+    if not end_time:
+        if debug_status:
+            status = debug_status.lower()
             if any(k in status for k in ['fail', 'failed']):
-                state = 'FAILED'
+                return "FAILED"
             elif any(k in status for k in ['warn', 'skip', 'not found']):
-                state = 'WARNING'
+                return "WARNING"
             elif 'abort' in status:
-                state = 'ABORTED'
-            else:
-                state = 'INCOMPLETE'
-            print(f"| {phase:9} | {s} | {'-'*21} | {state:10} |")
-        else:
-            print(f"| {phase:9} | {'-'*21} | {'-'*21} | {'':12} |") 
+                return "ABORTED"
+        return "INCOMPLETE"
+    
+    # 检查特定状态
+    if status_key in result:
+        status = result[status_key]
+        if status == "FAILED":
+            return "FAILED"
+        elif status == "SKIP":
+            return "NOT_SUPPORTED"
+        elif status == "ABORTED":
+            return "ABORTED"
+    
+    return "DONE"
 
+def generate_json_output(result, debug_status, artifact, trace_id):
+    """生成JSON格式输出"""
+    # 提取SHA-256（如果存在）
+    sha256_match = re.search(r'([a-f0-9]{64})', artifact)
+    sha256 = sha256_match.group(1) if sha256_match else None
+    
+    # 构建JSON结构
+    json_output = {
+        "repositoryPath": artifact,
+        "SHA-256": sha256,
+        "traceId": trace_id,
+        "overall": {},
+        "details": {
+            "sca": {},
+            "contextual_analysis": {},
+            "exposures": {
+                "categories": {
+                    "iac": {},
+                    "secrets": {},
+                    "services": {},
+                    "applications": {}
+                }
+            },
+            "violations": {}
+        }
+    }
+    
+    # 计算整体状态
+    phases = ['indexer', 'persist', 'analysis', 'ca', 'exposure']
+    overall_start = None
+    overall_end = None
+    
+    for phase in phases:
+        start_key = f"{phase}_start"
+        end_key = f"{phase}_end"
+        status_key = f"{phase}_end_status"
+        
+        start_time = result.get(start_key)
+        end_time = result.get(end_key)
+        
+        # 更新整体时间范围
+        if start_time and (not overall_start or start_time < overall_start):
+            overall_start = start_time
+        if end_time and (not overall_end or end_time > overall_end):
+            overall_end = end_time
+        
+        # 确定状态
+        status = determine_status(start_time, end_time, status_key, result, 
+                               debug_status.get(phase) if debug_status else None)
+        
+        # 格式化持续时间
+        duration = format_duration(start_time, end_time)
+        
+        # 添加到details
+        if phase == 'indexer':
+            json_output["details"]["sca"] = {
+                "status": status,
+                "duration": duration,
+                "time": end_time.isoformat() + "Z" if end_time else None
+            }
+        elif phase == 'ca':
+            json_output["details"]["contextual_analysis"] = {
+                "status": status,
+                "duration": duration,
+                "time": end_time.isoformat() + "Z" if end_time else None
+            }
+        elif phase == 'exposure':
+            json_output["details"]["exposures"] = {
+                "status": status,
+                "duration": duration,
+                "time": end_time.isoformat() + "Z" if end_time else None,
+                "categories": {
+                    "iac": {
+                        "duration": "0",
+                        "time": end_time.isoformat() + "Z" if end_time else None,
+                        "status": "NOT_SUPPORTED"
+                    },
+                    "secrets": {
+                        "duration": duration,
+                        "time": end_time.isoformat() + "Z" if end_time else None,
+                        "status": status
+                    },
+                    "services": {
+                        "duration": "0",
+                        "time": end_time.isoformat() + "Z" if end_time else None,
+                        "status": "NOT_SUPPORTED"
+                    },
+                    "applications": {
+                        "duration": duration,
+                        "time": end_time.isoformat() + "Z" if end_time else None,
+                        "status": status
+                    }
+                }
+            }
+    
+    # 设置整体状态
+    overall_status = determine_status(overall_start, overall_end, None, result)
+    json_output["overall"] = {
+        "status": overall_status,
+        "duration": format_duration(overall_start, overall_end),
+        "time": overall_end.isoformat() + "Z" if overall_end else None
+    }
+    
+    # 设置violations（与整体相同）
+    json_output["details"]["violations"] = {
+        "duration": format_duration(overall_start, overall_end),
+        "status": overall_status,
+        "time": overall_end.isoformat() + "Z" if overall_end else None
+    }
+    
+    return json_output
+
+def show(result, debug_status=None, output_format="table"):
+    if output_format == "table":
+        print(f"| 阶段      | 起始时间                 | 结束时间                 | 耗时/状态     |")
+        print(f"|-----------|--------------------------|--------------------------|--------------|")
+        for phase in ['indexer', 'persist', 'analysis', 'ca', 'exposure']:
+            s = result.get(f"{phase}_start")
+            e = result.get(f"{phase}_end")
+            status_key = f"{phase}_end_status"
+            if s and e:
+                status = result.get(status_key)
+                # 统一处理状态字符串
+                if status == "FAILED":
+                    state_str = "FAILED"
+                elif status == "SKIP":
+                    state_str = "SKIP"
+                elif status == "ABORTED":
+                    state_str = "ABORTED"
+                else:
+                    state_str = ""
+                delta = e - s
+                total_seconds = delta.total_seconds()
+                ms = int((total_seconds - int(total_seconds)) * 1000)
+                h = int(total_seconds // 3600)
+                m = int((total_seconds % 3600) // 60)
+                sec = int(total_seconds % 60)
+                if state_str:
+                    print(f"| {phase:9} | {s} | {e} | {h}:{m:02d}:{sec:02d}.{ms:03d} {state_str} |")
+                else:
+                    print(f"| {phase:9} | {s} | {e} | {h}:{m:02d}:{sec:02d}.{ms:03d} |")
+            elif s and not e:
+                status = (debug_status.get(phase, '') if debug_status else '').lower()
+                if any(k in status for k in ['fail', 'failed']):
+                    state = 'FAILED'
+                elif any(k in status for k in ['warn', 'skip', 'not found']):
+                    state = 'WARNING'
+                elif 'abort' in status:
+                    state = 'ABORTED'
+                else:
+                    state = 'INCOMPLETE'
+                print(f"| {phase:9} | {s} | {'-'*21} | {state:10} |")
+            else:
+                print(f"| {phase:9} | {'-'*21} | {'-'*21} | {'':12} |")
 
 if __name__ == "__main__":
     import argparse
@@ -215,6 +374,7 @@ if __name__ == "__main__":
     parser.add_argument("logdir", help="日志主目录（如xray/）")
     parser.add_argument("artifact", help="artifact相关关键词（如sha256片段或jar文件名等）")
     parser.add_argument("--debug", action="store_true", help="写debug.log并打印分析行")
+    parser.add_argument("--format", choices=["table", "json"], default="table", help="输出格式：table或json")
     args = parser.parse_args()
 
     trace_ids = find_trace_ids(args.logdir, args.artifact)
@@ -222,6 +382,8 @@ if __name__ == "__main__":
     if not trace_ids:
         print("未找到trace id")
         sys.exit(1)
+    
+    all_results = []
     for trace_id in trace_ids:
         lines = find_all_lines_by_trace_id(args.logdir, trace_id)
         result, debug_status = parse_timeline(lines, args.artifact, args.debug)
@@ -229,14 +391,25 @@ if __name__ == "__main__":
         if not any(result.get(f"{phase}_start") or result.get(f"{phase}_end") for phase in ['indexer', 'persist', 'analysis', 'ca', 'exposure']):
             print(f"# Trace ID: {trace_id} skipped (no scan-related business lines found, e.g. curation/router/policyenforcer)")
             continue
-        print(f"# Trace ID: {trace_id}")
-        if args.debug:
-            debug_filename = f"debug_{trace_id}.log"
-            # 按时间排序
-            sorted_lines = sorted(lines, key=lambda l: extract_time(l) or datetime.min)
-            with open(debug_filename, "w", encoding="utf-8") as f:
-                for l in sorted_lines:
-                    f.write(l + "\n")
-            print(f"已写入 {debug_filename}")
-        show(result, debug_status)
+        
+        if args.format == "json":
+            json_output = generate_json_output(result, debug_status, args.artifact, trace_id)
+            all_results.append(json_output)
+        else:
+            print(f"# Trace ID: {trace_id}")
+            if args.debug:
+                debug_filename = f"debug_{trace_id}.log"
+                # 按时间排序
+                sorted_lines = sorted(lines, key=lambda l: extract_time(l) or datetime.min)
+                with open(debug_filename, "w", encoding="utf-8") as f:
+                    for l in sorted_lines:
+                        f.write(l + "\n")
+                print(f"已写入 {debug_filename}")
+            show(result, debug_status, args.format)
+    
+    if args.format == "json":
+        if len(all_results) == 1:
+            print(json.dumps(all_results[0], indent=2, ensure_ascii=False))
+        else:
+            print(json.dumps(all_results, indent=2, ensure_ascii=False))
 
