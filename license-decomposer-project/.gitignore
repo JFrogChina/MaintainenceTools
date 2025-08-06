@@ -1,0 +1,6 @@
+# License分解器项目相关
+dist/
+build/
+*.app/
+*.dmg
+history/
