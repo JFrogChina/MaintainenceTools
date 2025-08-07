@@ -57,7 +57,7 @@ OPTIONS = {
         }
     },
     'packages': ['PyQt6', 'cryptography'],
-    'includes': ['gui_app_pyqt', 'history_manager', 'history_widgets', 'icon_manager', 'license_decomposer', 'encodings', 'codecs', 'copyreg', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1'],
+    'includes': ['gui_app_pyqt', 'history_manager', 'history_widgets', 'icon_manager', 'license_decomposer', 'encodings', 'codecs', 'copyreg', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1', '_cffi_backend', '_cffi', 'cffi', 'pycparser'],
     'excludes': ['PyQt6.Qt3D', 'PyQt6.QtQuick3D', 'PyQt6.QtWebEngine', 'PyQt6.QtWebView'],
     'resources': [],
     'optimize': 0,
@@ -172,7 +172,7 @@ OPTIONS = {{
         }}
     }},
     'packages': ['PyQt6', 'cryptography'],
-    'includes': ['gui_app_pyqt', 'history_manager', 'history_widgets', 'icon_manager', 'license_decomposer', 'encodings', 'codecs', 'copyreg', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1'],
+    'includes': ['gui_app_pyqt', 'history_manager', 'history_widgets', 'icon_manager', 'license_decomposer', 'encodings', 'codecs', 'copyreg', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1', '_cffi_backend', '_cffi', 'cffi', 'pycparser'],
     'excludes': ['PyQt6.Qt3D', 'PyQt6.QtQuick3D', 'PyQt6.QtWebEngine', 'PyQt6.QtWebView'],
     'resources': [],
     'optimize': 0,
@@ -222,6 +222,27 @@ setup(
             shutil.rmtree(target_app)
         
         shutil.copytree(source_app, target_app)
+        
+        # 确保图标文件在正确位置
+        icon_source = "jfrog_icon.icns"
+        icon_target = os.path.join(target_app, "Contents", "jfrog_icon.icns")
+        shutil.copy2(icon_source, icon_target)
+        
+        # 复制icons目录中的所有图标文件到应用程序包
+        icons_source_dir = "icons"
+        icons_target_dir = os.path.join(target_app, "Contents", "Resources", "icons")
+        
+        if os.path.exists(icons_source_dir):
+            # 确保目标目录存在
+            os.makedirs(icons_target_dir, exist_ok=True)
+            
+            # 复制所有图标文件
+            for icon_file in os.listdir(icons_source_dir):
+                if icon_file.lower().endswith(('.png', '.jpg', '.jpeg', '.ico', '.svg')):
+                    source_icon = os.path.join(icons_source_dir, icon_file)
+                    target_icon = os.path.join(icons_target_dir, icon_file)
+                    shutil.copy2(source_icon, target_icon)
+                    print(f"✅ 复制图标文件: {icon_file}")
         
         print("✅ 成功复制：License Splitter.app")
         return True
