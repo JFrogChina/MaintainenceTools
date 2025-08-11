@@ -26,20 +26,19 @@
 
 ## 功能演示
 
-### 对 index 数据的进度进行展开
+### 问题展示: 显示未100%，但不确定具体的文件是哪个(也存在特殊情况,如: 虽然显示100%, 但是仓库中的部分制品可能没有扫描结果)
 
-问题展示：
+![图一：Index数据进度展示](./resource/images/indexresource01.jpg)
 
-<div style="text-align: center;">
-    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource01.jpg?raw=true" alt="图一" />
-</div>
-![图一](./resource/images/indexresource01.jpg)
+*图一：UI显示65/67的扫描进度，其中67为应扫描文件总数，65为成功扫描的文件数*
 
 ### 扫描结果解答
 
-<div style="text-align: center;">
-    <img src="https://github.com/JFrogChina/MaintainenceTools/blob/main/artifactory-repo-index/resource/images/indexresource02.jpg?raw=true" alt="图二" />
-</div>
+![图二：扫描状态统计结果](./resource/images/indexresource02.jpg)
+
+*图二：显示扫描状态统计，包括成功扫描65个文件，2个文件正在扫描中（in progress），可以精确定位到具体文件路径*
+
+> **重要提示**: 此脚本主要用于帮助定位"相关文件"和扫描状态，至于具体的扫描错误问题可以联系 JFrog Support 处理。
 
 ## 相关数值对应的定义和澄清
 
@@ -54,28 +53,14 @@
 > **注意**: 在Xray一些版本中可能存在其他的状态，如scan failed、或者接口返回500报错等情况。
 
 **对几种状态的通俗解释:**
-```json
-"not supported": 此仓库不支持此制品,比如在nuget仓库中上传的dll文件;
-"not scanned": 未扫描,通常出现在制品刚上传的阶段或扫描结果已经过期的阶段（默认保留90天）;
-"in progress": 扫描过程中,如果长时间保持这个状态,需要具体排查原因;
-"scanned": 扫描成功;
-"failed/scan failed": 扫描失败,需要具体分析其原因;
-```
 
-### 图一说明
-
-- **UI index 结果为 64/65**
-- **65** 为Xray识别的应扫描的文件数量
-- **64** 为减去扫描结果状态为 `not scanned | scan failed | not supported` 之后的制品数量
-
-### 图二说明
-```shell
-[Repo ] - [xx-local] - Potential files: 65, Scan Status Counts: Counter({'scanned': 64, 'scan failed': 1})
-```
-- **xx-local**: 为仓库名
-- **Potential files: 65** 表示共计有65个文件应该被扫描
-- **scanned: 64** 表示有64个制品的扫描结果为此状态
-- **scan failed: 1** 表示有1个制品的扫描结果为此状态
+| 状态 | 说明 | 处理建议 |
+|------|------|----------|
+| `not supported` | 此仓库不支持此制品类型，比如在nuget仓库中上传的dll文件 | 检查制品类型是否与仓库匹配 |
+| `not scanned` | 未扫描，通常出现在制品刚上传阶段或扫描结果已过期（默认保留90天） | 等待扫描完成或手动触发扫描 |
+| `in progress` | 扫描进行中，如果长时间保持此状态需要排查原因 | 检查Xray服务状态，必要时联系支持 |
+| `scanned` | 扫描成功，制品已通过安全检查 | 正常状态，无需处理 |
+| `failed/scan failed` | 扫描失败，需要分析具体原因 | 查看日志，联系JFrog Support |
 
 ## 安装
 
@@ -93,8 +78,8 @@
 
 3. **准备Python3环境及依赖包**
     ```sh
-    python3 -m venv repoindex
-    source repoindex/bin/activate
+    python3 -m venv venv
+    source venv/bin/activate
     python3 -m pip install argparse requests tqdm wcwidth tabulate
     ```
 
@@ -119,30 +104,35 @@
 | `--format` | 数据格式: `table` \| `json` \| `csv` | `table` |
 | `--clear_log` | 是否清空日志 | `True` |
 | `--threads` | 并发API调用的线程数 | `50` |
+| `--forcereindex` | 强制重新索引每个制品后再扫描 | `False` |
 
 ### 运行示例
 
-1. 运行脚本：
-    ```python
+1. **基本扫描**：
+    ```bash
     python3 indexer.py my-repo --base_url=https://myjfrogurl.com --username myuser --password mypass --scan_result_save results.csv --format csv
     ```
 
-2. **参数说明**
-    - **`my-repo`** - 要扫描的仓库名称
-    - **`--base_url`** - JFrog 平台地址
-    - **`--username`** - JFrog 用户名
-    - **`--password`** - JFrog 密码
-    - **`--scan_result_save`** - 保存扫描结果的文件，格式为CSV
-    - **`--format`** - 结果格式，支持 `table`、`json` 和 `csv`
+2. **强制重新索引后扫描**：
+    ```bash
+    python3 indexer.py my-repo --base_url=https://myjfrogurl.com --username myuser --password mypass --forcereindex
+    ```
+
+2. **运行说明**
+    - 脚本会扫描指定的仓库 `my-repo`
+    - 结果将保存为CSV格式到 `results.csv` 文件
+    - 支持多种输出格式：`table`、`json`、`csv`
 
 ### 日志记录
 
-日志记录保存在`scan_details.file`（默认）文件中,可以根据需要使用 --scan_result_save 参数更改文件名。
+日志记录保存在 `scan_details.file`（默认）文件中，可以根据需要使用 `--scan_result_save` 参数更改文件名。
 
 
 ## 特殊情况
-极少数情况下,可能会遇到脚本返回的数字与UI页面上展示的不一样的问题,通常可能是由于特殊包或垃圾数据导致的,具体情况需要具体分析;
-再次声明,此脚本主要用于找到'失败的那个文件',其他的需要具体排查和解决。
+
+> **注意**: 极少数情况下，可能会遇到脚本返回的数字与UI页面上展示的不一样的问题，通常可能是由于特殊包或垃圾数据导致的，具体情况需要具体分析。
+
+**重要声明**: 此脚本主要用于找到"问题文件"和定位扫描状态，其他问题需要具体排查和解决。
 
 ## 贡献
 
