@@ -1,3 +1,4 @@
 # Artifactory 索引相关
 repoindex/
+venv/
 scan_details.file 

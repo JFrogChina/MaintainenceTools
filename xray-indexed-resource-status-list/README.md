@@ -64,29 +64,54 @@
 
 ## 安装
 
+### 环境要求
+- **Python版本**: 3.7+
+- **操作系统**: Linux, macOS, Windows
+- **网络**: 需要访问JFrog Artifactory实例
+
 ### 环境准备
 
-1. **克隆项目到本地**
-    ```sh
-    git clone https://github.com/jfrogchina/MaintainenceTools.git
-    ```
+```bash
+# 1. 创建Python虚拟环境
+python3 -m venv venv
 
-2. **进入项目目录**
-    ```sh
-    cd MaintainenceTools/artifactory-repo-index
-    ```
+# 2. 激活虚拟环境
+source venv/bin/activate  # Linux/macOS
+# 或者 Windows: venv\Scripts\activate
 
-3. **准备Python3环境及依赖包**
-    ```sh
-    python3 -m venv venv
-    source venv/bin/activate
-    python3 -m pip install argparse requests tqdm wcwidth tabulate
-    ```
+# 3. 安装依赖包（推荐）
+pip install -r requirements.txt
+
+# 或者手动安装核心依赖
+pip install requests tqdm wcwidth tabulate
+
+# 4. 验证安装
+python3 indexer.py --help
+```
 
 ## 项目结构
 
 - **`indexer.py`** - 主脚本文件
 - **`Xray_pkg_support.json`** - 文件类型的支持规则
+- **`requirements.txt`** - Python依赖包列表
+- **`README.md`** - 项目说明文档
+
+## 🚀 快速开始
+
+### 基本使用流程
+```bash
+# 1. 克隆项目
+git clone https://github.com/jfrogchina/MaintainenceTools.git
+cd MaintainenceTools/xray-indexed-resource-status-list
+
+# 2. 设置环境
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. 运行扫描
+python3 indexer.py my-repo --base_url=https://myjfrogurl.com --username myuser --password mypass
+```
 
 ## 使用方法
 
