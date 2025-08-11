@@ -1,7 +1,0 @@
-# License分解器项目相关
-temp_build/
-output/
-dist/
-*.app/
-*.dmg
-history/
