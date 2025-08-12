@@ -4,9 +4,9 @@ import json
 from requests.auth import HTTPBasicAuth
 
 # JFrog Xray API URL
-XRAy_API_URL = "https://demo.jfrogchina.com/xray/api/v1"
-USERNAME = "xxxx"  # JFrog  用户名
-PASSWORD = "xxxx"  # JFrog \ 密码（或使用 API 密钥代替）
+XRAy_API_URL = "http://localhost:8082"
+USERNAME = "xx"  # JFrog  用户名
+PASSWORD = "xx"  # JFrog \ 密码（或使用 API 密钥代替）
 
 # HTTP 请求头
 HEADERS = {
@@ -15,7 +15,7 @@ HEADERS = {
 
 # 1. 获取仓库索引配置
 def get_indexing_configuration():
-    url = f"{XRAy_API_URL}/binMgr/default/repos"
+    url = f"{XRAy_API_URL}/xray/api/v1/binMgr/default/repos"
     response = requests.get(url, headers=HEADERS, auth=HTTPBasicAuth(USERNAME, PASSWORD))
 
     if response.status_code == 200:
@@ -26,7 +26,7 @@ def get_indexing_configuration():
 
 # 2. 获取仓库配置（包括漏洞上下文分析等）
 def get_repository_configuration(repo_name):
-    url = f"{XRAy_API_URL}/repos_config/{repo_name}"
+    url = f"{XRAy_API_URL}/xray/api/v1/repos_config/{repo_name}"
     params = {"repo_name": repo_name}
     response = requests.get(url, headers=HEADERS, params=params, auth=HTTPBasicAuth(USERNAME, PASSWORD))
 
@@ -76,13 +76,13 @@ def get_filtered_repo_configurations(type_filters, pkg_type_filters):
 def main():
     # 设置过滤条件 local | remote
     #type_filter = "local"  # 过滤仓库类型，可以根据需求修改
-    type_filters = ["local", "remote"]
+    type_filters = ["local"]
     # Contextual Analysis - Supported Repositories: Docker | Maven | Gradle | npm
     #   https://jfrog.com/help/r/jfrog-security-documentation/vulnerability-contextual-analysis 
     # Exposures - Supports following package types: Docker | OCI | Maven | npm | Pypi
     #   https://jfrog.com/help/r/jfrog-security-documentation/exposures-scans
     #pkg_type_filter = "Pypi"  # 过滤包类型，可以根据需求修改
-    pkg_type_filters = ["Docker", "Maven", "Gradle", "npm", "OCI", "Pypi"]
+    pkg_type_filters = ["Maven"]
 
     # 获取符合条件的仓库配置
     #repo_configs = get_filtered_repo_configurations(type_filter, pkg_type_filter)
