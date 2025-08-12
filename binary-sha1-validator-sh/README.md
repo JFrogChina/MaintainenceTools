@@ -1,4 +1,10 @@
+# Binary SHA1 Validator (Shell Version)
+
 比较底层存储中文件名和实际的SHA1值是否一致；
+
+## 📋 项目简介
+
+这是Shell脚本版本的SHA1校验工具，用于检查Artifactory底层存储中文件名和SHA1值是否一致。
 
 ## 🔄 项目更新
 
