@@ -241,7 +241,7 @@ if __name__ == "__main__":
     print("=" * 80)
     
     parser = argparse.ArgumentParser(description="检测 Artifactory 代理缓存状态，支持批量和并发，严格超时，模型内文件多线程，实时输出")
-    parser.add_argument("--models", type=str, default=None, help="模型列表文件，每行: repo_id,revision")
+    parser.add_argument("--file", type=str, default=None, help="模型/数据集列表文件，每行: repo_type,repo_id,revision")
     parser.add_argument("--timeout", type=int, default=15, help="每个模型检测的最大超时（秒）")
     parser.add_argument("--debug", action="store_true", help="打印 API 原始内容")
     parser.add_argument("--registry", type=str, default="http://localhost:8082/artifactory/api/huggingfaceml/huggingfaceml-remote", help="Artifactory 代理基础URL")
@@ -251,13 +251,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        if args.models:
+        if args.file:
             if args.workers > 1:
                 print(f"🚀 使用并发版本处理，并发数: {args.workers}")
-                batch_from_file_concurrent(args.models, args.registry, timeout=args.timeout, debug=args.debug, workers=args.workers, file_workers=args.file_workers, file_timeout=args.file_timeout)
+                batch_from_file_concurrent(args.file, args.registry, timeout=args.timeout, debug=args.debug, workers=args.workers, file_workers=args.file_workers, file_timeout=args.file_timeout)
             else:
                 print("🐌 使用单线程版本处理")
-                batch_from_file(args.models, args.registry, timeout=args.timeout, debug=args.debug, workers=args.workers, file_workers=args.file_workers, file_timeout=args.file_timeout)
+                batch_from_file(args.file, args.registry, timeout=args.timeout, debug=args.debug, workers=args.workers, file_workers=args.file_workers, file_timeout=args.file_timeout)
         else:
             # 单模型测试（1.2G）
             repo_id = "LiheYoung/depth_anything_vitl14"

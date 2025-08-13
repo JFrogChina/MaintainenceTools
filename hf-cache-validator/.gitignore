@@ -1,3 +1,4 @@
 # JFrog远程缓存相关
+head.log
 cache_data/
 remote_cache/ 
