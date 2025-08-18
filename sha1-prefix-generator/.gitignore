@@ -1,3 +1,4 @@
 # SHA1前缀生成器相关
 generated_prefixes/
 prefix_cache/ 
+file_with_*.txt
