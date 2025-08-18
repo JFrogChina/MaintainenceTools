@@ -16,7 +16,7 @@ Log2Timeline 能够自动解析 Xray 日志，提取每个 trace id 的各个处
 
 ## 使用方法
 
-1. 准备好已归档的 Xray 日志（推荐配合 [Bundle2Logs](../Bundle2Logs) 使用）。
+1. 准备好已归档的 Xray 日志（推荐配合 [Bundle2Logs](../bundle2logs) 使用）。
 2. 运行脚本：
 
    ```bash
