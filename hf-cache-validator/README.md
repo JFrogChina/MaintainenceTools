@@ -14,6 +14,9 @@ Hugging Face 模型和数据集缓存状态检查工具，用于验证 Artifacto
 
 ### 环境准备
 ```sh
+python3 -m venv ~/my-venv
+source ~/my-venv/bin/activate
+pip3 install requests
 # 设置 Hugging Face Token
 export HF_TOKEN="your_token_here"
 ```
